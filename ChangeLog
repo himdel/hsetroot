@@ -1,0 +1,9 @@
+hsetroot 1.0.2 - September 5, 2003
+ - Fixed multi-screen behaviour
+
+hsetroot 1.0.1 - July 6, 2003
+ - Fixed -add
+ - Fixed maximum aspect image rendering
+
+hsetroot 1.0.0 - July 6, 2003
+ - Initial release
