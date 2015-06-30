@@ -5,15 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "config.h"
-
 typedef enum
 { Full, Fill, Center, Tile } ImageMode;
 
 void
 usage (char *commandline)
 {
-  printf (PACKAGE_STRING " - " DESCRIPTION "\n"
+  printf ("hsetroot - yet another wallpaper application\n"
 	  "\n"
 	  "Syntaxis: %s [command1 [arg1..]] [command2 [arg1..]]..."
 	  "\n"
@@ -49,7 +47,8 @@ usage (char *commandline)
 	  "\n"
 	  "Colors are in the #rrbbgg or #rrggbbaa format.\n"
 	  "\n"
-	  "Send bugreports to: " PACKAGE_BUGREPORT "\n" "\n", commandline);
+	  "Send bugreports to: https://github.com/himdel/hsetroot\n\n", commandline);
+
 }
 
 // Globals:
