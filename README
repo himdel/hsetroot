@@ -1,29 +1,7 @@
-hsetroot -- Yet another wallpaper application...
+hsetroot - imlib2-based wallpaper changer
 
-Q: why another one?
-A: Personal requirements..
+original author: Hyriand <hyriand@thegraveyard.org> (2003)
+licence: GPL2
+includes patches from debian, various authors, details in git log
 
-Q: Why this one?
-A: Because it can do stuff, manipulate images etc..
-
-Q: How does it do that?
-A: Using imlib2..
-
-Q: how do I install it?
-A: like most apps..
-       # ./configure
-       # make
-       # su
-       # make install
-
-Q: To whom should I bitch?
-A: hyriand@thegraveyard.org
-
-Q: uhmm.. help?!?
-A: hsetroot --help
-
-Q: you don't like docs, right?
-A: right...
-
-
--- hyriand
+needs libimlib2-dev, libx11-dev
