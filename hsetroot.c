@@ -253,6 +253,11 @@ main (int argc, char **argv)
   Imlib_Color_Modifier modifier = NULL;
   _display = XOpenDisplay (NULL);
 
+  if(!_display){
+    fprintf (stderr, "Cannot open X display!\n");
+    exit (123);
+  }
+
   for (screen = 0; screen < ScreenCount (_display); screen++)
     {
       display = XOpenDisplay (NULL);
