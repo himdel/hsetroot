@@ -2,9 +2,12 @@ hsetroot - imlib2-based wallpaper changer
 
 original author: Hyriand <hyriand@thegraveyard.org> (2003)
 licence: GPL2
-includes patches from debian, various authors, details in git log
-
 needs libimlib2-dev, libx11-dev, pkg-config
+
+includes patches from debian, various authors, details in git log
+	-cover and -extend added
+
+screen mask added: -screens
 
 
 # TODO rework command line option parsing, use something
