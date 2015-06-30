@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 typedef enum
-{ Full, Fill, Center, Tile } ImageMode;
+{ Full, Fill, Center, Tile, Xtend } ImageMode;
 
 void
 usage (char *commandline)
@@ -28,6 +28,7 @@ usage (char *commandline)
 	  " -center <image>            Render an image centered on screen\n"
 	  " -tile <image>              Render an image tiled\n"
 	  " -full <image>              Render an image maximum aspect\n"
+	  " -extend <image>            Render an image max aspect and fill borders\n"
 	  " -fill <image>              Render an image strechted\n"
 	  "\n"
 	  "Manipulations:\n"
@@ -198,7 +199,7 @@ load_image (ImageMode mode, const char *arg, int rootW, int rootH, int alpha,
       imlib_blend_image_onto_image (buffer, 0, 0, 0, imgW, imgH,
 				    0, 0, rootW, rootH);
     }
-  else if (mode == Full)
+  else if ((mode == Full) || (mode == Xtend))
     {
       double aspect = ((double) rootW) / imgW;
       int top, left;
@@ -206,9 +207,29 @@ load_image (ImageMode mode, const char *arg, int rootW, int rootH, int alpha,
 	aspect = (double) rootH / (double) imgH;
       top = (rootH - (int) (imgH * aspect)) / 2;
       left = (rootW - (int) (imgW * aspect)) / 2;
+
       imlib_blend_image_onto_image (buffer, 0, 0, 0, imgW, imgH,
 				    left, top, (int) (imgW * aspect),
 				    (int) (imgH * aspect));
+
+      if (mode == Xtend) {
+        int w;
+        if ( left >0 ) {
+          int right = left - 1 + (int) (imgW * aspect);
+          /* check only the right border - left is int divided so the right border is larger */
+          for (w = 1; (right + w < rootW); w <<= 1) {
+            imlib_image_copy_rect (left + 1 - w, 0, w, rootH, left + 1 - w - w, 0);
+            imlib_image_copy_rect (right, 0, w, rootH, right + w, 0);
+          }
+        }
+        if (top >0 ) {
+          int bottom = top - 1 + (int) (imgH * aspect);
+          for (w = 1; (bottom + w < rootH); w <<= 1) {
+            imlib_image_copy_rect (0, top + 1 - w, rootW, w, 0, top + 1 - w - w);
+            imlib_image_copy_rect (0, bottom, rootW, w, 0, bottom + w);
+          }
+        }
+      }
     }
   else
     {
@@ -418,6 +439,20 @@ main (int argc, char **argv)
 		  continue;
 		}
 	      if (load_image (Full, argv[i], width, height, alpha, image) ==
+		  0)
+		{
+		  fprintf (stderr, "Bad image (%s)\n", argv[i]);
+		  continue;
+		}
+	    }
+	  else if (strcmp (argv[i], "-extend") == 0)
+	    {
+	      if ((++i) >= argc)
+		{
+		  fprintf (stderr, "Missing image\n");
+		  continue;
+		}
+	      if (load_image (Xtend, argv[i], width, height, alpha, image) ==
 		  0)
 		{
 		  fprintf (stderr, "Bad image (%s)\n", argv[i]);
