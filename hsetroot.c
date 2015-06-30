@@ -13,7 +13,10 @@ usage(char *commandline)
   printf(
     "hsetroot - yet another wallpaper application\n"
     "\n"
-    "Syntaxis: %s [command1 [arg1..]] [command2 [arg1..]]..."
+    "Syntax: %s [command1 [arg1..]] [command2 [arg1..]]..."
+    "\n"
+    "Generic Options:\n"
+    " -screens <int>             Set a screenmask to use\n"
     "\n"
     "Gradients:\n"
     " -add <color>               Add color to range using distance 1\n"
@@ -253,6 +256,7 @@ main(int argc, char **argv)
   int width, height, depth, i, alpha;
   Pixmap pixmap;
   Imlib_Color_Modifier modifier = NULL;
+  unsigned long screen_mask = ~0;
 
   /* global */ _display = XOpenDisplay(NULL);
 
@@ -261,7 +265,27 @@ main(int argc, char **argv)
     exit(123);
   }
 
+  // global options
+  for (i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-screens"))
+      continue;
+
+    int intval;
+    if ((++i) >= argc) {
+      fprintf(stderr, "Missing value\n");
+      continue;
+    }
+    if ((sscanf(argv[i], "%i", &intval) == 0) || (intval < 0)) {
+      fprintf(stderr, "Bad value (%s)\n", argv[i]);
+      continue;
+    }
+    screen_mask = intval;
+  }
+
   for (/* global */ screen = 0; screen < ScreenCount(_display); screen++) {
+    if ((screen_mask & (1 << screen)) == 0)
+      continue;
+
     display = XOpenDisplay(NULL);
 
     context = imlib_context_new();
@@ -512,6 +536,9 @@ main(int argc, char **argv)
           continue;
         }
         imlib_save_image(argv[i]);
+      } else if (strcmp(argv[i], "-screens") == 0) {
+        /* handled as global, just skipping here, + arg */
+        i++;
       } else {
         usage(argv[0]);
         imlib_free_image();

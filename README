@@ -5,3 +5,6 @@ licence: GPL2
 includes patches from debian, various authors, details in git log
 
 needs libimlib2-dev, libx11-dev, pkg-config
+
+
+# TODO rework command line option parsing, use something
