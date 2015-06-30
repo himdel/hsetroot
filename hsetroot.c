@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 typedef enum
-{ Full, Fill, Center, Tile, Xtend } ImageMode;
+{ Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
 
 void
 usage (char *commandline)
@@ -26,6 +26,7 @@ usage (char *commandline)
 	  "\n"
 	  "Image files:\n"
 	  " -center <image>            Render an image centered on screen\n"
+	  " -cover <image>             Render an image centered on screen scaled to fill the screen fully\n"
 	  " -tile <image>              Render an image tiled\n"
 	  " -full <image>              Render an image maximum aspect\n"
 	  " -extend <image>            Render an image max aspect and fill borders\n"
@@ -199,11 +200,11 @@ load_image (ImageMode mode, const char *arg, int rootW, int rootH, int alpha,
       imlib_blend_image_onto_image (buffer, 0, 0, 0, imgW, imgH,
 				    0, 0, rootW, rootH);
     }
-  else if ((mode == Full) || (mode == Xtend))
+  else if ((mode == Full) || (mode == Xtend) || (mode == Cover))
     {
       double aspect = ((double) rootW) / imgW;
       int top, left;
-      if ((int) (imgH * aspect) > rootH)
+      if (((int) (imgH * aspect) > rootH) != /*xor*/ (mode == Cover))
 	aspect = (double) rootH / (double) imgH;
       top = (rootH - (int) (imgH * aspect)) / 2;
       left = (rootW - (int) (imgW * aspect)) / 2;
@@ -481,6 +482,20 @@ main (int argc, char **argv)
 		  continue;
 		}
 	      if (load_image (Center, argv[i], width, height, alpha, image) ==
+		  0)
+		{
+		  fprintf (stderr, "Bad image (%s)\n", argv[i]);
+		  continue;
+		}
+	    }
+	  else if (strcmp (argv[i], "-cover") == 0)
+	    {
+	      if ((++i) >= argc)
+		{
+		  fprintf (stderr, "Missing image\n");
+		  continue;
+		}
+	      if (load_image (Cover, argv[i], width, height, alpha, image) ==
 		  0)
 		{
 		  fprintf (stderr, "Bad image (%s)\n", argv[i]);
