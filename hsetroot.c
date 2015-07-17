@@ -189,7 +189,11 @@ load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Iml
 
   imlib_context_set_image(rootimg);
   if (mode == Fill) {
-    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, 0, 0, rootW, rootH);
+    printf("w=%d h=%d\n", rootW, rootH);
+    int rw = rootW / 3;
+    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, 0, 0, rw, rootH);
+    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, rw, 0, rw, rootH);
+    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, 2 * rw, 0, rw, rootH);
   } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
     double aspect = ((double) rootW) / imgW;
     if (((int) (imgH * aspect) > rootH) != /*xor*/ (mode == Cover))
