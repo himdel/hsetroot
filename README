@@ -5,9 +5,14 @@ licence: GPL2
 needs libimlib2-dev, libx11-dev, pkg-config
 
 includes patches from debian, various authors, details in git log
-	-cover and -extend added
+	`-cover` and `-extend` added
 
-screen mask added: -screens
+screen mask added: `-screens` .. which is rather useless actually, as it deals with X screens, not xrandr outputs
 
+current TODO:
+
+[ ] single image across all *outputs*
+[ ] the same image on each output
+[ ] providing a list of images to be used in sequence across outputs (iterated over in TL->TR->BL->BR direction)
 
 # TODO rework command line option parsing, use something
