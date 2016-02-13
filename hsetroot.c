@@ -1,5 +1,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/Xrandr.h>
 #include <Imlib2.h>
 #include <string.h>
 #include <stdio.h>
@@ -158,8 +159,13 @@ parse_color(char *arg, PColor c, int a)
   return 1;
 }
 
+typedef struct {
+  int w, h;
+  int x, y;
+} OutputInfo;
+
 int
-load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Imlib_Image rootimg)
+load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Imlib_Image rootimg, OutputInfo *outputs, int noutputs)
 {
   int imgW, imgH, o;
   Imlib_Image buffer = imlib_load_image(arg);
@@ -189,11 +195,12 @@ load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Iml
 
   imlib_context_set_image(rootimg);
   if (mode == Fill) {
-    printf("w=%d h=%d\n", rootW, rootH);
-    int rw = rootW / 3;
-    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, 0, 0, rw, rootH);
-    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, rw, 0, rw, rootH);
-    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, 2 * rw, 0, rw, rootH);
+    for (int i = 0; i < noutputs; i++) {
+      OutputInfo o = outputs[i];
+
+      printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.w, o.h, o.x, o.y);
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.w, o.h);
+    }
   } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
     double aspect = ((double) rootW) / imgW;
     if (((int) (imgH * aspect) > rootH) != /*xor*/ (mode == Cover))
@@ -320,6 +327,44 @@ main(int argc, char **argv)
 
     alpha = 255;
 
+
+    /*
+    XRRScreenResources *rr_sr = XRRGetScreenResources(display, RootWindow(display, screen));
+
+    int noutputs = rr_sr->noutput;
+    OutputInfo *outputs = calloc(noutputs, sizeof(OutputInfo));
+
+    for (int o = 0; o < noutputs; o++) {
+      RROutput output = rr_sr->outputs[o];
+      XRROutputInfo *rr_oi = XRRGetOutputInfo(display, rr_sr, output);
+      for (int c = 0; c < rr_oi->ncrtc; c++) {
+        XRRPanning *rr_p = XRRGetPanning(display, rr_sr, rr_oi->crtcs[c]);
+
+        printf("output %d.%d: size(%d, %d) pos(%d, %d)\n", o, c, rr_p->width, rr_p->height, rr_p->left, rr_p->top);
+        outputs[o] = (OutputInfo) {
+          .x = rr_p->left,
+          .y = rr_p->top,
+          .w = rr_p->width,
+          .h = rr_p->height,
+        };
+
+        XRRFreePanning(rr_p);
+      }
+      XRRFreeOutputInfo(rr_oi);
+    }
+
+    XRRFreeScreenResources(rr_sr);
+
+    // TODO (fix all the continues)
+    // free(outputs);
+    */
+    OutputInfo outputs[] = {
+      { .x = 0, .y = 0, .w = 1920, .h = 1080 },
+      { .x = 1920, .y = 0, .w = 1920, .h = 1080 },
+    };
+    int noutputs = sizeof(outputs) / sizeof(OutputInfo);
+
+
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
         imlib_apply_color_modifier();
@@ -401,7 +446,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Fill, argv[i], width, height, alpha, image) == 0) {
+        if (load_image(Fill, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -410,7 +455,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Full, argv[i], width, height, alpha, image) == 0) {
+        if (load_image(Full, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -419,7 +464,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Xtend, argv[i], width, height, alpha, image) == 0) {
+        if (load_image(Xtend, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -428,7 +473,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Tile, argv[i], width, height, alpha, image) == 0) {
+        if (load_image(Tile, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -437,7 +482,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Center, argv[i], width, height, alpha, image) == 0) {
+        if (load_image(Center, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
           fprintf (stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -446,7 +491,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Cover, argv[i], width, height, alpha, image) == 0) {
+        if (load_image(Cover, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
           fprintf (stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
