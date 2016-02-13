@@ -12,11 +12,12 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * Add the '-extend' option
      * Add the '-cover' option
    * reintroduced the screen mask `-screens` option from earlier versions .. which is rather useless actually, as it deals with X screens, not xrandr outputs
+   * **added output support for all modes**
+     * currently needs the xrandr, grep & sed commands in $PATH
+     * yes, I'm sorry, I tried, but libxrandr would only return zeroes in XRRPanning for some reason
 
 
 current TODO:
 
    * [ ] rework command line option parsing, using some library (do people still use getopt\_long?)
-   * [ ] single image across all *outputs*
-   * [ ] the same image on each output
    * [ ] providing a list of images to be used in sequence across outputs (iterated over in TL->TR->BL->BR direction)
