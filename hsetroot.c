@@ -163,7 +163,7 @@ parse_color(char *arg, PColor c, int a)
 
 
 int
-load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Imlib_Image rootimg, OutputInfo *outputs, int noutputs)
+load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, OutputInfo *outputs, int noutputs)
 {
   int imgW, imgH, o;
   Imlib_Image buffer = imlib_load_image(arg);
@@ -192,57 +192,58 @@ load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Iml
   }
 
   imlib_context_set_image(rootimg);
-  if (mode == Fill) {
-    for (int i = 0; i < noutputs; i++) {
-      OutputInfo o = outputs[i];
 
-      printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.w, o.h, o.x, o.y);
+  for (int i = 0; i < noutputs; i++) {
+    OutputInfo o = outputs[i];
+    printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.w, o.h, o.x, o.y);
+
+    if (mode == Fill) {
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.w, o.h);
-    }
-  } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
-    double aspect = ((double) rootW) / imgW;
-    if (((int) (imgH * aspect) > rootH) != /*xor*/ (mode == Cover))
-      aspect = (double) rootH / (double) imgH;
+    } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
+      double aspect = ((double) o.w) / imgW;
+      if (((int) (imgH * aspect) > o.h) != /*xor*/ (mode == Cover))
+        aspect = (double) o.h / (double) imgH;
 
-    int top = (rootH - (int) (imgH * aspect)) / 2;
-    int left = (rootW - (int) (imgW * aspect)) / 2;
+      int top = (o.h - (int) (imgH * aspect)) / 2;
+      int left = (o.w - (int) (imgW * aspect)) / 2;
 
-    imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, left, top, (int) (imgW * aspect), (int) (imgH * aspect));
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, (int) (imgW * aspect), (int) (imgH * aspect));
 
-    if (mode == Xtend) {
-      int w;
+      if (mode == Xtend) {
+        int w;
 
-      if (left > 0) {
-        int right = left - 1 + (int) (imgW * aspect);
-        /* check only the right border - left is int divided so the right border is larger */
-        for (w = 1; right + w < rootW; w <<= 1) {
-          imlib_image_copy_rect(left + 1 - w, 0, w, rootH, left + 1 - w - w, 0);
-          imlib_image_copy_rect(right, 0, w, rootH, right + w, 0);
+        if (left > 0) {
+          int right = left - 1 + (int) (imgW * aspect);
+          /* check only the right border - left is int divided so the right border is larger */
+          for (w = 1; right + w < o.w; w <<= 1) {
+            imlib_image_copy_rect(o.x + left + 1 - w, o.y, w, o.h, o.x + left + 1 - w - w, o.y);
+            imlib_image_copy_rect(o.x + right, o.y, w, o.h, o.x + right + w, o.y);
+          }
+        }
+
+        if (top > 0) {
+          int bottom = top - 1 + (int) (imgH * aspect);
+          for (w = 1; (bottom + w < o.h); w <<= 1) {
+            imlib_image_copy_rect(o.x, o.y + top + 1 - w, o.w, w, o.x, o.y + top + 1 - w - w);
+            imlib_image_copy_rect(o.x, o.y + bottom, o.w, w, o.x, o.y + bottom + w);
+          }
         }
       }
+    } else {  // Center || Tile
+      int left = (o.w - imgW) / 2;
+      int top = (o.h - imgH) / 2;
 
-      if (top > 0) {
-        int bottom = top - 1 + (int) (imgH * aspect);
-        for (w = 1; (bottom + w < rootH); w <<= 1) {
-          imlib_image_copy_rect(0, top + 1 - w, rootW, w, 0, top + 1 - w - w);
-          imlib_image_copy_rect(0, bottom, rootW, w, 0, bottom + w);
-        }
+      if (mode == Tile) {
+        int x, y;
+        for (; left > 0; left -= imgW);
+        for (; top > 0; top -= imgH);
+
+        for (x = left; x < o.w; x += imgW)
+          for (y = top; y < o.h; y += imgH)
+            imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + x, o.y + y, imgW, imgH);
+      } else {
+        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, imgW, imgH);
       }
-    }
-  } else {
-    int left = (rootW - imgW) / 2;
-    int top = (rootH - imgH) / 2;
-
-    if (mode == Tile) {
-      int x, y;
-      for (; left > 0; left -= imgW);
-      for (; top > 0; top -= imgH);
-
-      for (x = left; x < rootW; x += imgW)
-        for (y = top; y < rootH; y += imgH)
-          imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, x, y, imgW, imgH);
-    } else {
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, left, top, imgW, imgH);
     }
   }
 
@@ -409,7 +410,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Fill, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Fill, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -418,7 +419,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Full, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Full, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -427,7 +428,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Xtend, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Xtend, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -436,7 +437,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Tile, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Tile, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -445,7 +446,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Center, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Center, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf (stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -454,7 +455,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Cover, argv[i], width, height, alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Cover, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf (stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
