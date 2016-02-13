@@ -1,10 +1,12 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#include <X11/extensions/Xrandr.h>
 #include <Imlib2.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "outputs.h"
+
 
 typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
 
@@ -159,10 +161,6 @@ parse_color(char *arg, PColor c, int a)
   return 1;
 }
 
-typedef struct {
-  int w, h;
-  int x, y;
-} OutputInfo;
 
 int
 load_image(ImageMode mode, const char *arg, int rootW, int rootH, int alpha, Imlib_Image rootimg, OutputInfo *outputs, int noutputs)
@@ -327,43 +325,8 @@ main(int argc, char **argv)
 
     alpha = 255;
 
-
-    /*
-    XRRScreenResources *rr_sr = XRRGetScreenResources(display, RootWindow(display, screen));
-
-    int noutputs = rr_sr->noutput;
-    OutputInfo *outputs = calloc(noutputs, sizeof(OutputInfo));
-
-    for (int o = 0; o < noutputs; o++) {
-      RROutput output = rr_sr->outputs[o];
-      XRROutputInfo *rr_oi = XRRGetOutputInfo(display, rr_sr, output);
-      for (int c = 0; c < rr_oi->ncrtc; c++) {
-        XRRPanning *rr_p = XRRGetPanning(display, rr_sr, rr_oi->crtcs[c]);
-
-        printf("output %d.%d: size(%d, %d) pos(%d, %d)\n", o, c, rr_p->width, rr_p->height, rr_p->left, rr_p->top);
-        outputs[o] = (OutputInfo) {
-          .x = rr_p->left,
-          .y = rr_p->top,
-          .w = rr_p->width,
-          .h = rr_p->height,
-        };
-
-        XRRFreePanning(rr_p);
-      }
-      XRRFreeOutputInfo(rr_oi);
-    }
-
-    XRRFreeScreenResources(rr_sr);
-
-    // TODO (fix all the continues)
-    // free(outputs);
-    */
-    OutputInfo outputs[] = {
-      { .x = 0, .y = 0, .w = 1920, .h = 1080 },
-      { .x = 1920, .y = 0, .w = 1920, .h = 1080 },
-    };
-    int noutputs = sizeof(outputs) / sizeof(OutputInfo);
-
+    int noutputs = 0;
+    OutputInfo *outputs = outputs_list(&noutputs);
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
@@ -602,12 +565,19 @@ main(int argc, char **argv)
       }
     }
 
+    if (outputs != NULL) {
+      outputs_free(outputs);
+      outputs = NULL;
+      noutputs = 0;
+    }
+
     if (modifier != NULL) {
       imlib_context_set_color_modifier(modifier);
       imlib_apply_color_modifier();
       imlib_free_color_modifier();
       modifier = NULL;
     }
+
     imlib_render_image_on_drawable(0, 0);
     imlib_free_image();
     imlib_free_color_range();

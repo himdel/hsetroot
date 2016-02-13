@@ -1,17 +1,19 @@
 CC=gcc
-CFLAGS=-g -O2 -Wall
-LDFLAGS=`pkg-config x11 --libs`
+
+CFLAGS?=-g -O2 -Wall
+LDFLAGS?=
+
 CFLAGS+=`pkg-config x11 --cflags`
+LDFLAGS+=`pkg-config x11 --libs`
 
 CFLAGS+=`pkg-config imlib2 --cflags`
 LDFLAGS+=`pkg-config imlib2 --libs`
 
-CFLAGS+=`pkg-config xrandr --cflags`
-LDFLAGS+=`pkg-config xrandr --libs`
+hsetroot: hsetroot.o outputs_xrandr.o
 
-hsetroot: hsetroot.o
+hsetroot.o: hsetroot.c outputs.h
 
-hsetroot.o: hsetroot.c
+outputs.o: outputs.c outputs.h
 
 clean:
-	rm -f hsetroot hsetroot.o
+	rm -f hsetroot *.o
