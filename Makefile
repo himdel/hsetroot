@@ -15,5 +15,8 @@ hsetroot.o: hsetroot.c outputs.h
 
 outputs.o: outputs.c outputs.h
 
+install: hsetroot
+	install -st /usr/local/bin/ hsetroot
+
 clean:
 	rm -f hsetroot *.o
