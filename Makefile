@@ -1,3 +1,5 @@
+SRC=./src/
+
 INSTALL_PREFIX=/usr/local/bin
 VERBOSE=@
 CC?=gcc
@@ -12,12 +14,12 @@ LDFLAGS?=
 LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs) $(shell $(PKG_CONFIG) imlib2 --libs)
 
 BINARY=hsetroot
-OBJS=$(BINARY).o outputs.o
+OBJS=$(SRC)$(BINARY).o $(SRC)outputs.o
 
 $(BINARY): $(OBJS)
 	$(VERBOSE)$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
-%.o: %.c %.h
+$(SRC)%.o: $(SRC)%.c $(SRC)%.h
 	$(VERBOSE)$(CC) -c $(CFLAGS) $(CFLAGS_EXTRA) $< -o $@
 
 debug: CFLAGS=$(CFLAGS_DEBUG)
@@ -28,4 +30,4 @@ install: hsetroot
 	$(VERBOSE)install -st $(INSTALL_PREFIX) $(BINARY)
 
 clean:
-	$(VERBOSE)rm -f hsetroot *.o
+	$(VERBOSE)rm -f hsetroot $(SRC)*.o
