@@ -1,4 +1,5 @@
 INSTALL_PREFIX=/usr/local/bin
+VERBOSE=@
 CC?=gcc
 PKG_CONFIG?=pkg-config
 
@@ -13,13 +14,13 @@ BINARY=hsetroot
 OBJS=$(BINARY).o outputs.o
 
 $(BINARY): $(OBJS)
-	$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
+	$(VERBOSE)$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
 %.o: %.c %.h
-	$(CC) -c $(CFLAGS) $(CFLAGS_EXTRA) $< -o $@
+	$(VERBOSE)$(CC) -c $(CFLAGS) $(CFLAGS_EXTRA) $< -o $@
 
 install: hsetroot
-	install -st $(INSTALL_PREFIX) $(BINARY)
+	$(VERBOSE)install -st $(INSTALL_PREFIX) $(BINARY)
 
 clean:
-	rm -f hsetroot *.o
+	$(VERBOSE)rm -f hsetroot *.o
