@@ -1,13 +1,14 @@
-CC=gcc
+CC?=gcc
+PKG_CONFIG?=pkg-config
 
 CFLAGS?=-g -O2 -Wall
 LDFLAGS?=
 
-CFLAGS+=`pkg-config x11 --cflags`
-LDFLAGS+=`pkg-config x11 --libs`
+CFLAGS+=`$(PKG_CONFIG) x11 --cflags`
+LDFLAGS+=`$(PKG_CONFIG) x11 --libs`
 
-CFLAGS+=`pkg-config imlib2 --cflags`
-LDFLAGS+=`pkg-config imlib2 --libs`
+CFLAGS+=`$(PKG_CONFIG) imlib2 --cflags`
+LDFLAGS+=`$(PKG_CONFIG) imlib2 --libs`
 
 hsetroot: hsetroot.o outputs_xrandr.o
 
