@@ -3,6 +3,7 @@
 
 typedef struct {
   int idx;
+  char* name;
   int w, h;
   int x, y;
 } OutputInfo;

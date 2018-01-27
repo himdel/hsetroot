@@ -31,7 +31,8 @@ OutputInfo
     close(pipefd[0]);
     dup2(pipefd[1], STDOUT_FILENO);
 
-    system("xrandr | grep ' connected' | sed -e 's/^.*\\s\\+\\([0-9]\\+x[0-9]\\+[-+][0-9]\\+[-+][0-9]\\+\\)\\s\\+.*$/\\1/'");
+    // connector width height x-offset y-offset
+    system("xrandr | sed -n 's/^\\(.*\\)\\sconnected[^0-9-]*\\([0-9]\\{1,\\}\\)x\\([0-9]\\{1,\\}\\)+\\([0-9]\\{1,\\}\\)+\\([0-9]\\{1,\\}\\).*$/\\1 \\2 \\3 \\4 \\5/p'");
 
     close(pipefd[1]);
     _exit(0);
@@ -43,24 +44,40 @@ OutputInfo
     int num = 0;
 
     char buf;
+    char *name;
+    int name_len;
     while (read(pipefd[0], &buf, 1) > 0) {
       switch (state) {
         case 0: // start of input, after newline
-          if (isspace(buf))
-            continue;
+          if (isspace(buf) != 0)
+            break;
 
           state = 1;
           outputs = realloc(outputs, ++noutputs * sizeof(OutputInfo));
 
           outputs[noutputs - 1].idx = noutputs - 1;
+          name = malloc(sizeof(char) * 256);
+          name_len = 0;
           // pass:
 
-#define STATE(INIT, FIELD, END) \
-        case INIT:\
-          if (! isdigit(buf)) {\
+        case 1: // read name
+          if (isspace(buf) != 0) {
+            name[name_len] = '\0';
+            outputs[noutputs - 1].name = name;
+            state = 2;
+            continue;
+          }
+
+          name[name_len] = buf;
+          name_len++;
+          continue;
+
+#define STATE(CASE, FIELD, NEXT_CASE) \
+        case CASE:\
+          if (isdigit(buf) == 0) {\
             outputs[noutputs - 1].FIELD = num;\
             \
-            state = END;\
+            state = NEXT_CASE;\
             num = 0;\
             continue;\
           }\
@@ -70,10 +87,10 @@ OutputInfo
           \
           break;
 
-        STATE(1, w, 2); // reading width
-        STATE(2, h, 3); // reading height
-        STATE(3, x, 4); // reading left
-        STATE(4, y, 0); // reading top
+        STATE(2, w, 3); // reading width
+        STATE(3, h, 4); // reading height
+        STATE(4, x, 5); // reading left
+        STATE(5, y, 0); // reading top
 #undef STATE
       }
     }
@@ -89,12 +106,17 @@ OutputInfo
 void
 outputs_print(OutputInfo o)
 {
-  printf("output %d: size: %dx%d) pos: +%d +%d\n", o.idx, o.w, o.h, o.x, o.y);
+  printf("output idx: %d, name: %s, size: %dx%d, pos: +%d +%d\n", o.idx, o.name, o.w, o.h, o.x, o.y);
 }
 
 void
 outputs_free(OutputInfo *outputs)
 {
-  if (outputs)
+  if (outputs) {
+    int noutputs = sizeof(&outputs) / sizeof(OutputInfo);
+    for (int i = 0; i < noutputs; i++) {
+      free(outputs[i].name);
+    }
     free(outputs);
+  }
 }
