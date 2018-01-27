@@ -316,12 +316,12 @@ main(int argc, char **argv)
       if (strcmp(argv[i], "-outputs") == 0) {
         processed = 1;
 
-        int noutputs = 0;
-        OutputInfo *outputs = outputs_set(&noutputs);
-        for (int i = 0; i < noutputs; i++) {
-          outputs_print(outputs[i]);
+        Outputs outputs;
+        outputs_set(&outputs);
+        for (int i = 0; i < outputs.noutputs; i++) {
+          outputs_print(outputs.infos[i]);
         }
-        outputs_free(outputs);
+        outputs_free(&outputs);
 
         break;
       }
@@ -358,8 +358,8 @@ main(int argc, char **argv)
 
     alpha = 255;
 
-    int noutputs = 0;
-    OutputInfo *outputs = outputs_set(&noutputs);
+    Outputs outputs;
+    outputs_set(&outputs);
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
@@ -442,7 +442,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Fill, argv[i], alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Fill, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -451,7 +451,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Full, argv[i], alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Full, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -460,7 +460,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Xtend, argv[i], alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Xtend, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -469,7 +469,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Tile, argv[i], alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Tile, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -478,7 +478,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Center, argv[i], alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Center, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
           fprintf (stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -487,7 +487,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Cover, argv[i], alpha, image, outputs, noutputs) == 0) {
+        if (load_image(Cover, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
           fprintf (stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
@@ -599,11 +599,8 @@ main(int argc, char **argv)
       }
     }
 
-    if (outputs != NULL) {
-      outputs_free(outputs);
-      outputs = NULL;
-      noutputs = 0;
-    }
+    if (outputs.infos != NULL)
+      outputs_free(&outputs);
 
     if (modifier != NULL) {
       imlib_context_set_color_modifier(modifier);

@@ -7,23 +7,22 @@
 
 #include "outputs.h"
 
-
-OutputInfo
-*outputs_set(int *count_out)
+void
+outputs_set(Outputs* outputs)
 {
-  OutputInfo *outputs = NULL;
+  OutputInfo *infos = NULL;
   int noutputs = 0;
 
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     perror("pipe");
-    return NULL;
+    return;
   }
 
   pid_t pid = fork();
   if (pid == -1) {
     perror("fork");
-    return NULL;
+    return;
   }
 
   if (pid == 0) {
@@ -53,9 +52,9 @@ OutputInfo
             break;
 
           state = 1;
-          outputs = realloc(outputs, ++noutputs * sizeof(OutputInfo));
+          infos = realloc(infos, ++noutputs * sizeof(OutputInfo));
 
-          outputs[noutputs - 1].idx = noutputs - 1;
+          infos[noutputs - 1].idx = noutputs - 1;
           name = malloc(sizeof(char) * 256);
           name_len = 0;
           // pass:
@@ -63,7 +62,7 @@ OutputInfo
         case 1: // read name
           if (isspace(buf) != 0) {
             name[name_len] = '\0';
-            outputs[noutputs - 1].name = name;
+            infos[noutputs - 1].name = name;
             state = 2;
             continue;
           }
@@ -75,7 +74,7 @@ OutputInfo
 #define STATE(CASE, FIELD, NEXT_CASE) \
         case CASE:\
           if (isdigit(buf) == 0) {\
-            outputs[noutputs - 1].FIELD = num;\
+            infos[noutputs - 1].FIELD = num;\
             \
             state = NEXT_CASE;\
             num = 0;\
@@ -99,8 +98,8 @@ OutputInfo
     close(pipefd[0]);
   }
 
-  *count_out = noutputs;
-  return outputs;
+  outputs->noutputs = noutputs;
+  outputs->infos = infos;
 }
 
 void
@@ -110,13 +109,13 @@ outputs_print(OutputInfo o)
 }
 
 void
-outputs_free(OutputInfo *outputs)
+outputs_free(Outputs* outputs)
 {
   if (outputs) {
-    int noutputs = sizeof(&outputs) / sizeof(OutputInfo);
-    for (int i = 0; i < noutputs; i++) {
-      free(outputs[i].name);
+    for (int i = 0; i < outputs->noutputs; i++) {
+      free(outputs->infos[i].name);
     }
-    free(outputs);
+    free(outputs->infos);
+    outputs->infos = NULL;
   }
 }

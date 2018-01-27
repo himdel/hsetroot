@@ -8,8 +8,13 @@ typedef struct {
   int x, y;
 } OutputInfo;
 
-OutputInfo *outputs_set(int *count_out);
+typedef struct {
+  int noutputs;
+  OutputInfo* infos;
+} Outputs;
+
+void outputs_set(Outputs*);
 void outputs_print(OutputInfo);
-void outputs_free(OutputInfo *);
+void outputs_free(Outputs*);
 
 #endif	// __OUTPUTS_H__
