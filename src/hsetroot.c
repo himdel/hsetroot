@@ -36,7 +36,7 @@ usage(char *commandline)
     " -tile <image>              Render an image tiled\n"
     " -full <image>              Render an image maximum aspect\n"
     " -extend <image>            Render an image max aspect and fill borders\n"
-    " -fill <image>              Render an image strechted\n"
+    " -fill <image>              Render an image stretched\n"
     "\n"
     "Manipulations:\n"
     " -tint <color>              Tint the current image\n"
@@ -53,7 +53,7 @@ usage(char *commandline)
     " -alpha <amount>            Adjust alpha level for colors and images\n"
     " -write <filename>          Write current image to file\n"
     "\n"
-    "Colors are in the #rrbbgg or #rrggbbaa format.\n"
+    "Colors are in the #rrggbb or #rrggbbaa format.\n"
     "\n"
     "Create issues at https://github.com/himdel/hsetroot/issues\n\n"
   , commandline);
