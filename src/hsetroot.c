@@ -6,9 +6,8 @@
 #include <stdlib.h>
 
 #include "outputs.h"
+#include "options.h"
 
-
-typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
 
 void
 usage(char *commandline)
@@ -165,10 +164,14 @@ parse_color(char *arg, PColor c, int a)
 
 
 int
-load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, OutputInfo *outputs, int noutputs)
+load_image(Imlib_Image rootimg, Options *options)
 {
   int imgW, imgH, o;
-  Imlib_Image buffer = imlib_load_image(arg);
+  Imlib_Image buffer = imlib_load_image(options->image_mode_arg);
+  ImageMode image_mode = options->image_mode;
+  OutputInfo *outputs = options->outputs;
+  int noutputs = options->output_count;
+  int alpha = options->alpha;
 
   if (!buffer)
     return 0;
@@ -198,11 +201,11 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Outp
   for (int i = 0; i < noutputs; i++) {
     OutputInfo o = outputs[i];
 
-    if (mode == Fill) {
+    if (image_mode == Fill) {
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.w, o.h);
-    } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
+    } else if ((image_mode == Full) || (image_mode == Xtend) || (image_mode == Cover)) {
       double aspect = ((double) o.w) / imgW;
-      if (((int) (imgH * aspect) > o.h) != /*xor*/ (mode == Cover))
+      if (((int) (imgH * aspect) > o.h) != /*xor*/ (image_mode == Cover))
         aspect = (double) o.h / (double) imgH;
 
       int top = (o.h - (int) (imgH * aspect)) / 2;
@@ -210,7 +213,7 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Outp
 
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, (int) (imgW * aspect), (int) (imgH * aspect));
 
-      if (mode == Xtend) {
+      if (image_mode == Xtend) {
         int w;
 
         if (left > 0) {
@@ -234,7 +237,7 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Outp
       int left = (o.w - imgW) / 2;
       int top = (o.h - imgH) / 2;
 
-      if (mode == Tile) {
+      if (image_mode == Tile) {
         int x, y;
         for (; left > 0; left -= imgW);
         for (; top > 0; top -= imgH);
@@ -264,7 +267,7 @@ main(int argc, char **argv)
   Display *_display;
   Imlib_Context *context;
   Imlib_Image image;
-  int width, height, depth, i, alpha;
+  int width, height, depth, i;
   Pixmap pixmap;
   Imlib_Color_Modifier modifier = NULL;
   unsigned long screen_mask = ~0;
@@ -330,6 +333,9 @@ main(int argc, char **argv)
     if (processed == 1)
       continue;
 
+    Options options;
+    options_default(&options);
+
     context = imlib_context_new();
     imlib_context_push(context);
 
@@ -356,10 +362,10 @@ main(int argc, char **argv)
     imlib_context_set_dither(1);
     imlib_context_set_blend(1);
 
-    alpha = 255;
-
     Outputs outputs;
     outputs_set(&outputs);
+    options.outputs = outputs.infos;
+    options.output_count = outputs.noutputs;
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
@@ -374,7 +380,7 @@ main(int argc, char **argv)
           fprintf (stderr, "Missing alpha\n");
           continue;
         }
-        if (sscanf(argv[i], "%i", &alpha) == 0) {
+        if (sscanf(argv[i], "%i", &options.alpha) == 0) {
           fprintf (stderr, "Bad alpha (%s)\n", argv[i]);
           continue;
         }
@@ -384,7 +390,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (parse_color(argv[i], &c, alpha) == 0) {
+        if (parse_color(argv[i], &c, options.alpha) == 0) {
           fprintf (stderr, "Bad color (%s)\n", argv[i]);
           continue;
         }
@@ -399,7 +405,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (parse_color(argv[i], &c, alpha) == 0) {
+        if (parse_color(argv[i], &c, options.alpha) == 0) {
           fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
           continue;
         }
@@ -416,7 +422,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing distance\n");
           continue;
         }
-        if (parse_color(argv[i - 1], &c, alpha) == 0) {
+        if (parse_color(argv[i - 1], &c, options.alpha) == 0) {
           fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
           continue;
         }
@@ -442,8 +448,10 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Fill, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
-          fprintf(stderr, "Bad image (%s)\n", argv[i]);
+        options.image_mode = Fill;
+        options.image_mode_arg = argv[i];
+        if (load_image(image, &options) == 0) {
+          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
       } else if (strcmp(argv[i], "-full") == 0) {
@@ -451,8 +459,10 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Full, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
-          fprintf(stderr, "Bad image (%s)\n", argv[i]);
+        options.image_mode = Full;
+        options.image_mode_arg = argv[i];
+        if (load_image(image, &options) == 0) {
+          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
       } else if (strcmp(argv[i], "-extend") == 0) {
@@ -460,8 +470,10 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Xtend, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
-          fprintf(stderr, "Bad image (%s)\n", argv[i]);
+        options.image_mode = Xtend;
+        options.image_mode_arg = argv[i];
+        if (load_image(image, &options) == 0) {
+          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
       } else if (strcmp(argv[i], "-tile") == 0) {
@@ -469,8 +481,10 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Tile, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
-          fprintf(stderr, "Bad image (%s)\n", argv[i]);
+        options.image_mode = Tile;
+        options.image_mode_arg = argv[i];
+        if (load_image(image, &options) == 0) {
+          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
       } else if (strcmp(argv[i], "-center") == 0) {
@@ -478,8 +492,10 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Center, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
-          fprintf (stderr, "Bad image (%s)\n", argv[i]);
+        options.image_mode = Center;
+        options.image_mode_arg = argv[i];
+        if (load_image(image, &options) == 0) {
+          fprintf (stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
       } else if (strcmp(argv[i], "-cover") == 0) {
@@ -487,8 +503,10 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (load_image(Cover, argv[i], alpha, image, outputs.infos, outputs.noutputs) == 0) {
-          fprintf (stderr, "Bad image (%s)\n", argv[i]);
+        options.image_mode = Cover;
+        options.image_mode_arg = argv[i];
+        if (load_image(image, &options) == 0) {
+          fprintf (stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
       } else if (strcmp(argv[i], "-tint") == 0) {

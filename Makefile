@@ -14,7 +14,7 @@ LDFLAGS?=
 LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs) $(shell $(PKG_CONFIG) imlib2 --libs)
 
 BINARY=hsetroot
-OBJS=$(SRC)$(BINARY).o $(SRC)outputs.o
+OBJS=$(SRC)$(BINARY).o $(SRC)outputs.o $(SRC)options.o
 
 $(BINARY): $(OBJS)
 	$(VERBOSE)$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
