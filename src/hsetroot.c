@@ -16,9 +16,10 @@ usage(char *commandline)
   printf(
     "hsetroot - yet another wallpaper application\n"
     "\n"
-    "Syntax: %s [command1 [arg1..]] [command2 [arg1..]]..."
+    "Syntax: %s command1 [arg1..] [command2 [arg1..]]..."
     "\n"
     "Generic Options:\n"
+    " -help                      This help information\n"
     " -screens <int>             Set a screenmask to use\n"
     "\n"
     "Gradients:\n"
@@ -275,7 +276,18 @@ main(int argc, char **argv)
     exit(123);
   }
 
+  if (argc < 2) {
+    usage(argv[0]);
+    exit(0);
+  }
+
   // global options
+  for (i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-help") == 0) {
+      usage(argv[0]);
+      exit(0);
+    }
+  }
   for (i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-screens"))
       continue;
@@ -553,7 +565,6 @@ main(int argc, char **argv)
         /* handled as global, just skipping here, + arg */
         i++;
       } else {
-        usage(argv[0]);
         imlib_free_image();
         imlib_free_color_range();
         if (modifier != NULL) {
@@ -562,6 +573,8 @@ main(int argc, char **argv)
           modifier = NULL;
         }
         XFreePixmap(display, pixmap);
+        usage(argv[0]);
+        fprintf(stderr, "\nunsupported option '%s'\n", argv[i]);
         exit(1);
       }
     }
