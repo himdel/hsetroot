@@ -6,7 +6,7 @@ typedef struct {
   int x, y;
 } OutputInfo;
 
-extern OutputInfo *outputs_list(int *count_out);
-extern void outputs_free(OutputInfo *);
+OutputInfo *outputs_list(int *count_out);
+void outputs_free(OutputInfo *);
 
 #endif	// __OUTPUTS_H__
