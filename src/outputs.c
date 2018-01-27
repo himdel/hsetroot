@@ -9,7 +9,7 @@
 
 
 OutputInfo
-*outputs_list(int *count_out)
+*outputs_set(int *count_out)
 {
   OutputInfo *outputs = NULL;
   int noutputs = 0;
@@ -51,7 +51,9 @@ OutputInfo
 
           state = 1;
           outputs = realloc(outputs, ++noutputs * sizeof(OutputInfo));
-          // pass
+
+          outputs[noutputs - 1].idx = noutputs - 1;
+          // pass:
 
 #define STATE(INIT, FIELD, END) \
         case INIT:\
@@ -82,6 +84,12 @@ OutputInfo
 
   *count_out = noutputs;
   return outputs;
+}
+
+void
+outputs_print(OutputInfo o)
+{
+  printf("output %d: size: %dx%d) pos: +%d +%d\n", o.idx, o.w, o.h, o.x, o.y);
 }
 
 void

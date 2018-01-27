@@ -21,6 +21,7 @@ usage(char *commandline)
     "Generic Options:\n"
     " -help                      This help information\n"
     " -screens <int>             Set a screenmask to use\n"
+    " -outputs                   List screen outputs detected via xrandr\n"
     "\n"
     "Gradients:\n"
     " -add <color>               Add color to range using distance 1\n"
@@ -196,7 +197,6 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Outp
 
   for (int i = 0; i < noutputs; i++) {
     OutputInfo o = outputs[i];
-    printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.w, o.h, o.x, o.y);
 
     if (mode == Fill) {
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.w, o.h);
@@ -310,6 +310,26 @@ main(int argc, char **argv)
 
     display = XOpenDisplay(NULL);
 
+    // global options
+    int processed = 0;
+    for (i = 1; i < argc; i++) {
+      if (strcmp(argv[i], "-outputs") == 0) {
+        processed = 1;
+
+        int noutputs = 0;
+        OutputInfo *outputs = outputs_set(&noutputs);
+        for (int i = 0; i < noutputs; i++) {
+          outputs_print(outputs[i]);
+        }
+        outputs_free(outputs);
+
+        break;
+      }
+    }
+
+    if (processed == 1)
+      continue;
+
     context = imlib_context_new();
     imlib_context_push(context);
 
@@ -339,7 +359,7 @@ main(int argc, char **argv)
     alpha = 255;
 
     int noutputs = 0;
-    OutputInfo *outputs = outputs_list(&noutputs);
+    OutputInfo *outputs = outputs_set(&noutputs);
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
