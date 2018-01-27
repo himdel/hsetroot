@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -106,6 +107,15 @@ void
 outputs_print(OutputInfo o)
 {
   printf("output idx: %d, name: %s, size: %dx%d, pos: +%d +%d\n", o.idx, o.name, o.w, o.h, o.x, o.y);
+}
+
+OutputInfo
+*outputs_by_name(Outputs* outputs, char* name)
+{
+  for (int i = 0; i < outputs->noutputs; i++) {
+    if (strcmp(outputs->infos[i].name, name) == 0) return &(outputs->infos[i]);
+  }
+  return NULL;
 }
 
 void

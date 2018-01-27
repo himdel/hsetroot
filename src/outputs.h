@@ -15,6 +15,7 @@ typedef struct {
 
 void outputs_set(Outputs*);
 void outputs_print(OutputInfo);
+OutputInfo *outputs_by_name(Outputs*, char*);
 void outputs_free(Outputs*);
 
 #endif	// __OUTPUTS_H__
