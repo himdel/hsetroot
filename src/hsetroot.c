@@ -22,6 +22,9 @@ usage(char *commandline)
     " -help                      This help information\n"
     " -screens <int>             Set a screenmask to use\n"
     " -outputs                   List screen outputs detected via xrandr\n"
+    " -output <name>             Apply to xrandr output 'name' only*\n"
+    "\n"
+    "*supports: images [all], solid, manipulation [alpha]\n"
     "\n"
     "Gradients:\n"
     " -add <color>               Add color to range using distance 1\n"
@@ -41,9 +44,10 @@ usage(char *commandline)
     " -fill <image>              Render an image stretched\n"
     "\n"
     "Manipulations:\n"
-    " -tint <color>              Tint the current image\n"
+    " -alpha <amount>            Adjust alpha level for colors and images\n"
     " -blur <radius>             Blur the current image\n"
     " -sharpen <radius>          Sharpen the current image\n"
+    " -tint <color>              Tint the current image\n"
     " -contrast <amount>         Adjust contrast of current image\n"
     " -brightness <amount>       Adjust brightness of current image\n"
     " -gamma <amount>            Adjust gamma level of current image\n"
@@ -52,7 +56,6 @@ usage(char *commandline)
     " -flipd                     Flip the current image diagonally\n"
     "\n"
     "Misc:\n"
-    " -alpha <amount>            Adjust alpha level for colors and images\n"
     " -write <filename>          Write current image to file\n"
     "\n"
     "Colors are in the #rrggbb or #rrggbbaa format.\n"
@@ -163,63 +166,113 @@ parse_color(char *arg, PColor c, int a)
   return true;
 }
 
-
 int
-load_image(Imlib_Image rootimg, Options *options)
+overlay_effects(Imlib_Image root_image, Options *options)
 {
   int res = true;
-  int imgW, imgH, o;
-  Imlib_Image buffer = imlib_load_image(options->image_mode_arg);
-  ImageMode image_mode = options->image_mode;
+  int width, height;
+
   OutputInfo *outputs = options->outputs;
   int noutputs = options->output_count;
-  int alpha = options->alpha;
 
-  if (!buffer)
-    return false;
+  imlib_context_set_image(root_image);
+  width = imlib_image_get_width();
+  height = imlib_image_get_height();
 
-  imlib_context_set_image(buffer);
-  imgW = imlib_image_get_width();
-  imgH = imlib_image_get_height();
+  Imlib_Image image = root_image;
 
-  if (alpha < 255) {
-    // Create alpha-override mask
+  for (int i = 0; i < noutputs; i++) {
+    OutputInfo o = outputs[i];
+
+    if (options->effects_mode == Output) {
+      // use a buffer
+      width = o.w;
+      height = o.h;
+      image = imlib_create_image(width, height);
+      imlib_context_set_image(image);
+    }
+
+    if (options->set_solid) {
+      Color c;
+      parse_color(options->solid_colour, &c, 255);
+      imlib_context_set_color(c.r, c.g, c.b, c.a);
+      imlib_image_fill_rectangle(0, 0, width, height);
+    }
+
+    if (options->set_alpha) {
+      // create alpha-override mask
     imlib_image_set_has_alpha(1);
     Imlib_Color_Modifier modifier = imlib_create_color_modifier();
     imlib_context_set_color_modifier(modifier);
 
-    DATA8 red[256], green[256], blue[256], alph[256];
-    imlib_get_color_modifier_tables(red, green, blue, alph);
-    for (o = 0; o < 256; o++)
-      alph[o] = (DATA8) alpha;
-    imlib_set_color_modifier_tables(red, green, blue, alph);
+      DATA8 red[256], green[256], blue[256], alpha[256];
+      imlib_get_color_modifier_tables(red, green, blue, alpha);
+      for (int i = 0; i < 256; i++)
+        alpha[i] = (DATA8) options->alpha_level;
+      imlib_set_color_modifier_tables(red, green, blue, alpha);
 
     imlib_apply_color_modifier();
     imlib_free_color_modifier();
   }
 
-  imlib_context_set_image(rootimg);
+    if (options->effects_mode == Output) {
+      // overlay modified buffer to root
+      imlib_context_set_image(root_image);
+      imlib_blend_image_onto_image(image, 0, 0, 0, o.w, o.h, o.x, o.y, o.w, o.h);
+      imlib_context_set_image(image);
+      imlib_free_image();
+    }
+  }
 
+  imlib_context_set_image(root_image);
+
+  return res;
+}
+
+int
+overlay_image(Imlib_Image root_image, Options *options)
+{
+  int res = true;
+  int width, height;
+  Imlib_Image image = imlib_load_image(options->image_mode_arg);
+  if (!image)
+    return false;
+
+  OutputInfo *outputs = options->outputs;
+  int noutputs = options->output_count;
+  ImageMode image_mode = options->image_mode;
+
+  options->effects_mode = Root;
+  if (!overlay_effects(image, options)) {
+    printf("error overlaying image effects\n");
+    return false;
+  }
+
+  imlib_context_set_image(image);
+  width = imlib_image_get_width();
+  height = imlib_image_get_height();
+
+  imlib_context_set_image(root_image);
   for (int i = 0; i < noutputs; i++) {
     OutputInfo o = outputs[i];
 
     if (image_mode == Fill) {
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.w, o.h);
+      imlib_blend_image_onto_image(image, 0, 0, 0, width, height, o.x, o.y, o.w, o.h);
     } else if ((image_mode == Full) || (image_mode == Xtend) || (image_mode == Cover)) {
-      double aspect = ((double) o.w) / imgW;
-      if (((int) (imgH * aspect) > o.h) != /*xor*/ (image_mode == Cover))
-        aspect = (double) o.h / (double) imgH;
+      double aspect = ((double) o.w) / width;
+      if (((int) (height * aspect) > o.h) != /*xor*/ (image_mode == Cover))
+        aspect = (double) o.h / (double) height;
 
-      int top = (o.h - (int) (imgH * aspect)) / 2;
-      int left = (o.w - (int) (imgW * aspect)) / 2;
+      int top = (o.h - (int) (height * aspect)) / 2;
+      int left = (o.w - (int) (width * aspect)) / 2;
 
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, (int) (imgW * aspect), (int) (imgH * aspect));
+      imlib_blend_image_onto_image(image, 0, 0, 0, width, height, o.x + left, o.y + top, (int) (width * aspect), (int) (height * aspect));
 
       if (image_mode == Xtend) {
         int w;
 
         if (left > 0) {
-          int right = left - 1 + (int) (imgW * aspect);
+          int right = left - 1 + (int) (width * aspect);
           /* check only the right border - left is int divided so the right border is larger */
           for (w = 1; right + w < o.w; w <<= 1) {
             imlib_image_copy_rect(o.x + left + 1 - w, o.y, w, o.h, o.x + left + 1 - w - w, o.y);
@@ -228,7 +281,7 @@ load_image(Imlib_Image rootimg, Options *options)
         }
 
         if (top > 0) {
-          int bottom = top - 1 + (int) (imgH * aspect);
+          int bottom = top - 1 + (int) (height * aspect);
           for (w = 1; (bottom + w < o.h); w <<= 1) {
             imlib_image_copy_rect(o.x, o.y + top + 1 - w, o.w, w, o.x, o.y + top + 1 - w - w);
             imlib_image_copy_rect(o.x, o.y + bottom, o.w, w, o.x, o.y + bottom + w);
@@ -236,29 +289,46 @@ load_image(Imlib_Image rootimg, Options *options)
         }
       }
     } else {  // Center || Tile
-      int left = (o.w - imgW) / 2;
-      int top = (o.h - imgH) / 2;
+      int left = (o.w - width) / 2;
+      int top = (o.h - height) / 2;
 
       if (image_mode == Tile) {
         int x, y;
-        for (; left > 0; left -= imgW);
-        for (; top > 0; top -= imgH);
+        for (; left > 0; left -= width);
+        for (; top > 0; top -= height);
 
-        for (x = left; x < o.w; x += imgW)
-          for (y = top; y < o.h; y += imgH)
-            imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + x, o.y + y, imgW, imgH);
+        for (x = left; x < o.w; x += width)
+          for (y = top; y < o.h; y += height)
+            imlib_blend_image_onto_image(image, 0, 0, 0, width, height, o.x + x, o.y + y, width, height);
       } else {
-        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, imgW, imgH);
+        imlib_blend_image_onto_image(image, 0, 0, 0, width, height, o.x + left, o.y + top, width, height);
       }
     }
   }
 
-  imlib_context_set_image(buffer);
+  imlib_context_set_image(image);
   imlib_free_image();
 
-  imlib_context_set_image(rootimg);
+  imlib_context_set_image(root_image);
 
   return res;
+}
+
+int
+push_to_root(Imlib_Image root_image, Options *options)
+{
+  if (options->image_mode != Unset) {
+    if (!overlay_image(root_image, options)) {
+      printf("error overlaying image\n");
+      return false;
+    }
+  } else {
+    if (!overlay_effects(root_image, options)) {
+      printf("error overlaying effects\n");
+      return false;
+    }
+  }
+  return true;
 }
 
 int
@@ -268,7 +338,7 @@ main(int argc, char **argv)
   Colormap cm;
   Display *_display;
   Imlib_Context *context;
-  Imlib_Image image;
+  Imlib_Image root_image;
   int width, height, depth, i;
   Pixmap pixmap;
   Imlib_Color_Modifier modifier = NULL;
@@ -355,8 +425,8 @@ main(int argc, char **argv)
     imlib_context_set_drawable(pixmap);
     imlib_context_set_color_range(imlib_create_color_range());
 
-    image = imlib_create_image(width, height);
-    imlib_context_set_image(image);
+    root_image = imlib_create_image(width, height);
+    imlib_context_set_image(root_image);
 
     imlib_context_set_color(0, 0, 0, 255);
     imlib_image_fill_rectangle(0, 0, width, height);
@@ -369,36 +439,134 @@ main(int argc, char **argv)
     options.outputs = outputs.infos;
     options.output_count = outputs.noutputs;
 
+    int options_set = 0;
     for (i = 1; i < argc; i++) {
-      if (modifier != NULL) {
-        imlib_apply_color_modifier();
-        imlib_free_color_modifier();
+      ////////////////////
+      // display options
+      if (strcmp(argv[i], "-screens") == 0) {
+        /* handled as global, just skipping here, + arg */
+        i++;
+      } else if (strcmp(argv[i], "-output") == 0) {
+        // push previous options set
+        if (options_set == 1) {
+          if (!push_to_root(root_image, &options))
+            break;
       }
-      modifier = imlib_create_color_modifier();
-      imlib_context_set_color_modifier(modifier);
-
-      if (strcmp(argv[i], "-alpha") == 0) {
         if ((++i) >= argc) {
-          fprintf (stderr, "Missing alpha\n");
+          fprintf(stderr, "Missing output name\n");
+          break;
+        }
+        options_set = 0;
+        options_default(&options);
+        OutputInfo* output = outputs_by_name(&outputs, argv[i]);
+        if (output == NULL) {
+          fprintf (stderr, "Bad output name '%s'\n", argv[i]);
+          break;
+        }
+        // single output mode
+        options.outputs = output;
+        options.output_count = 1;
+
+      ////////////////////
+      // image options
+      } else if (strcmp(argv[i], "-fill") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
           continue;
         }
-        if (!sscanf(argv[i], "%i", &options.alpha)) {
-          fprintf (stderr, "Bad alpha (%s)\n", argv[i]);
+        options.image_mode = Fill;
+        options.image_mode_arg = argv[i];
+        options_set = 1;
+      } else if (strcmp(argv[i], "-full") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
           continue;
         }
+        options.image_mode = Full;
+        options.image_mode_arg = argv[i];
+        options_set = 1;
+      } else if (strcmp(argv[i], "-extend") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
+          continue;
+        }
+        options.image_mode = Xtend;
+        options.image_mode_arg = argv[i];
+        options_set = 1;
+      } else if (strcmp(argv[i], "-tile") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
+          continue;
+        }
+        options.image_mode = Tile;
+        options.image_mode_arg = argv[i];
+        options_set = 1;
+      } else if (strcmp(argv[i], "-center") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
+          continue;
+        }
+        options.image_mode = Center;
+        options.image_mode_arg = argv[i];
+        options_set = 1;
+      } else if (strcmp(argv[i], "-cover") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
+          continue;
+        }
+        options.image_mode = Cover;
+        options.image_mode_arg = argv[i];
+        options_set = 1;
+
+      ////////////////////
+      // solid options
       } else if (strcmp(argv[i], "-solid") == 0) {
         Color c;
         if ((++i) >= argc) {
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (!parse_color(argv[i], &c, options.alpha)) {
-          fprintf (stderr, "Bad color (%s)\n", argv[i]);
+        if (!parse_color(argv[i], &c, 255)) {
+          fprintf (stderr, "Bad solid color (%s)\n", argv[i]);
           continue;
         }
-        imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_image_fill_rectangle(0, 0, width, height);
-      } else if (strcmp(argv[i], "-clear") == 0) {
+        options.set_solid = 1;
+        options.solid_colour = argv[i];
+        options_set = 1;
+
+      ////////////////////
+      // manipulation options
+      } else if (strcmp(argv[i], "-alpha") == 0) {
+        if ((++i) >= argc) {
+          fprintf (stderr, "Missing alpha value\n");
+          continue;
+        }
+        if (!sscanf(argv[i], "%i", &options.alpha_level)) {
+          fprintf (stderr, "Bad alpha value (%s)\n", argv[i]);
+          continue;
+        }
+        options.set_alpha = 1;
+        options_set = 1;
+
+      ////////////////////
+      // global only options
+      } else {
+        // push previous options set
+        if (options_set == 1) {
+          if (!push_to_root(root_image, &options))
+            break;
+          options_set = 0;
+          options_default(&options);
+        }
+
+        if (modifier != NULL) {
+          imlib_apply_color_modifier();
+          imlib_free_color_modifier();
+        }
+        modifier = imlib_create_color_modifier();
+        imlib_context_set_color_modifier(modifier);
+
+        if (strcmp(argv[i], "-clear") == 0) {
         imlib_free_color_range();
         imlib_context_set_color_range(imlib_create_color_range());
       } else if (strcmp(argv[i], "-add") == 0) {
@@ -407,7 +575,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (!parse_color(argv[i], &c, options.alpha)) {
+          if (!parse_color(argv[i], &c, options.alpha_level)) {
           fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
           continue;
         }
@@ -424,7 +592,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing distance\n");
           continue;
         }
-        if (!parse_color(argv[i - 1], &c, options.alpha)) {
+          if (!parse_color(argv[i - 1], &c, options.alpha_level)) {
           fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
           continue;
         }
@@ -445,72 +613,6 @@ main(int argc, char **argv)
           continue;
         }
         imlib_image_fill_color_range_rectangle(0, 0, width, height, angle);
-      } else if (strcmp(argv[i], "-fill") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing image\n");
-          continue;
-        }
-        options.image_mode = Fill;
-        options.image_mode_arg = argv[i];
-        if (!load_image(image, &options)) {
-          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
-          continue;
-        }
-      } else if (strcmp(argv[i], "-full") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing image\n");
-          continue;
-        }
-        options.image_mode = Full;
-        options.image_mode_arg = argv[i];
-        if (!load_image(image, &options)) {
-          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
-          continue;
-        }
-      } else if (strcmp(argv[i], "-extend") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing image\n");
-          continue;
-        }
-        options.image_mode = Xtend;
-        options.image_mode_arg = argv[i];
-        if (!load_image(image, &options)) {
-          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
-          continue;
-        }
-      } else if (strcmp(argv[i], "-tile") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing image\n");
-          continue;
-        }
-        options.image_mode = Tile;
-        options.image_mode_arg = argv[i];
-        if (!load_image(image, &options)) {
-          fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
-          continue;
-        }
-      } else if (strcmp(argv[i], "-center") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing image\n");
-          continue;
-        }
-        options.image_mode = Center;
-        options.image_mode_arg = argv[i];
-        if (!load_image(image, &options)) {
-          fprintf (stderr, "Bad image (%s)\n", options.image_mode_arg);
-          continue;
-        }
-      } else if (strcmp(argv[i], "-cover") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing image\n");
-          continue;
-        }
-        options.image_mode = Cover;
-        options.image_mode_arg = argv[i];
-        if (!load_image(image, &options)) {
-          fprintf (stderr, "Bad image (%s)\n", options.image_mode_arg);
-          continue;
-        }
       } else if (strcmp(argv[i], "-tint") == 0) {
         Color c;
         DATA8 r[256], g[256], b[256], a[256];
@@ -601,9 +703,6 @@ main(int argc, char **argv)
           continue;
         }
         imlib_save_image(argv[i]);
-      } else if (strcmp(argv[i], "-screens") == 0) {
-        /* handled as global, just skipping here, + arg */
-        i++;
       } else {
         imlib_free_image();
         imlib_free_color_range();
@@ -618,10 +717,13 @@ main(int argc, char **argv)
         exit(1);
       }
     }
+    }
 
-    if (outputs.infos != NULL)
-      outputs_free(&outputs);
+    // push final option set
+    if (options_set == 1)
+      push_to_root(root_image, &options);
 
+    // render root image and cleanup
     if (modifier != NULL) {
       imlib_context_set_color_modifier(modifier);
       imlib_apply_color_modifier();
@@ -647,6 +749,9 @@ main(int argc, char **argv)
 
     imlib_context_pop();
     imlib_context_free(context);
+
+    if (outputs.infos != NULL)
+      outputs_free(&outputs);
   }
 
   return 0;

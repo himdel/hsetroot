@@ -3,14 +3,25 @@
 
 #include <Imlib2.h>
 
-typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
+typedef enum { Unset, Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
+typedef enum { Root, Output } EffectsMode;
+#define DEFAULT_IMAGE_MODE 0;
+#define DEFAULT_EFFECTS_MODE 1;
+#define DEFAULT_IMAGE_ARG "";
+#define DEFAULT_SOLID_COLOUR "#000000";
+#define DEFAULT_ALPHA_LEVEL 255
 
 typedef struct {
   OutputInfo *outputs;
   int output_count;
   ImageMode image_mode;
+  EffectsMode effects_mode;
   const char *image_mode_arg;
-  int alpha;
+  char *solid_colour;
+  int alpha_level;
+  // option switches
+  bool set_solid;
+  bool set_alpha;
 } Options;
 
 void options_default(Options*);
