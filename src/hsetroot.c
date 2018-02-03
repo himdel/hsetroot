@@ -201,9 +201,9 @@ overlay_effects(Imlib_Image root_image, Options *options)
 
     if (options->set_alpha) {
       // create alpha-override mask
-    imlib_image_set_has_alpha(1);
-    Imlib_Color_Modifier modifier = imlib_create_color_modifier();
-    imlib_context_set_color_modifier(modifier);
+      imlib_image_set_has_alpha(1);
+      Imlib_Color_Modifier modifier = imlib_create_color_modifier();
+      imlib_context_set_color_modifier(modifier);
 
       DATA8 red[256], green[256], blue[256], alpha[256];
       imlib_get_color_modifier_tables(red, green, blue, alpha);
@@ -211,9 +211,9 @@ overlay_effects(Imlib_Image root_image, Options *options)
         alpha[i] = (DATA8) options->alpha_level;
       imlib_set_color_modifier_tables(red, green, blue, alpha);
 
-    imlib_apply_color_modifier();
-    imlib_free_color_modifier();
-  }
+      imlib_apply_color_modifier();
+      imlib_free_color_modifier();
+    }
 
     if (options->effects_mode == Output) {
       // overlay modified buffer to root
@@ -451,7 +451,7 @@ main(int argc, char **argv)
         if (options_set == 1) {
           if (!push_to_root(root_image, &options))
             break;
-      }
+        }
         if ((++i) >= argc) {
           fprintf(stderr, "Missing output name\n");
           break;
@@ -520,7 +520,7 @@ main(int argc, char **argv)
 
       ////////////////////
       // solid options
-      } else if (strcmp(argv[i], "-solid") == 0) {
+       } else if (strcmp(argv[i], "-solid") == 0) {
         Color c;
         if ((++i) >= argc) {
           fprintf(stderr, "Missing color\n");
@@ -567,156 +567,156 @@ main(int argc, char **argv)
         imlib_context_set_color_modifier(modifier);
 
         if (strcmp(argv[i], "-clear") == 0) {
-        imlib_free_color_range();
-        imlib_context_set_color_range(imlib_create_color_range());
-      } else if (strcmp(argv[i], "-add") == 0) {
-        Color c;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing color\n");
-          continue;
-        }
+          imlib_free_color_range();
+          imlib_context_set_color_range(imlib_create_color_range());
+        } else if (strcmp(argv[i], "-add") == 0) {
+          Color c;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing color\n");
+            continue;
+          }
           if (!parse_color(argv[i], &c, options.alpha_level)) {
-          fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
-          continue;
-        }
-        imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_add_color_to_color_range(1);
-      } else if (strcmp(argv[i], "-addd") == 0) {
-        Color c;
-        int distance;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing color\n");
-          continue;
-        }
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing distance\n");
-          continue;
-        }
+            fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
+            continue;
+          }
+          imlib_context_set_color(c.r, c.g, c.b, c.a);
+          imlib_add_color_to_color_range(1);
+        } else if (strcmp(argv[i], "-addd") == 0) {
+          Color c;
+          int distance;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing color\n");
+            continue;
+          }
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing distance\n");
+            continue;
+          }
           if (!parse_color(argv[i - 1], &c, options.alpha_level)) {
-          fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
-          continue;
-        }
-        if (!sscanf(argv[i], "%i", &distance)) {
-          fprintf(stderr, "Bad distance (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_add_color_to_color_range(distance);
-      } else if (strcmp(argv[i], "-gradient") == 0) {
-        int angle;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing angle\n");
-          continue;
-        }
-        if (!sscanf(argv[i], "%i", &angle)) {
-          fprintf (stderr, "Bad angle (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_image_fill_color_range_rectangle(0, 0, width, height, angle);
-      } else if (strcmp(argv[i], "-tint") == 0) {
-        Color c;
-        DATA8 r[256], g[256], b[256], a[256];
-        int j;
+            fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
+            continue;
+          }
+          if (!sscanf(argv[i], "%i", &distance)) {
+            fprintf(stderr, "Bad distance (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_context_set_color(c.r, c.g, c.b, c.a);
+          imlib_add_color_to_color_range(distance);
+        } else if (strcmp(argv[i], "-gradient") == 0) {
+          int angle;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing angle\n");
+            continue;
+          }
+          if (!sscanf(argv[i], "%i", &angle)) {
+            fprintf (stderr, "Bad angle (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_image_fill_color_range_rectangle(0, 0, width, height, angle);
+        } else if (strcmp(argv[i], "-tint") == 0) {
+          Color c;
+          DATA8 r[256], g[256], b[256], a[256];
+          int j;
 
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing color\n");
-          continue;
-        }
-        if (!parse_color(argv[i], &c, 255)) {
-          fprintf(stderr, "Bad color\n");
-          continue;
-        }
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing color\n");
+            continue;
+          }
+          if (!parse_color(argv[i], &c, 255)) {
+            fprintf(stderr, "Bad color\n");
+            continue;
+          }
 
-        imlib_get_color_modifier_tables(r, g, b, a);
+          imlib_get_color_modifier_tables(r, g, b, a);
 
-        for (j = 0; j < 256; j++) {
-          r[j] = (DATA8) (((double) r[j] / 255.0) * (double) c.r);
-          g[j] = (DATA8) (((double) g[j] / 255.0) * (double) c.g);
-          b[j] = (DATA8) (((double) b[j] / 255.0) * (double) c.b);
-        }
+          for (j = 0; j < 256; j++) {
+            r[j] = (DATA8) (((double) r[j] / 255.0) * (double) c.r);
+            g[j] = (DATA8) (((double) g[j] / 255.0) * (double) c.g);
+            b[j] = (DATA8) (((double) b[j] / 255.0) * (double) c.b);
+          }
 
-        imlib_set_color_modifier_tables(r, g, b, a);
-      } else if (strcmp(argv[i], "-blur") == 0) {
-        int intval;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing value\n");
-          continue;
+          imlib_set_color_modifier_tables(r, g, b, a);
+        } else if (strcmp(argv[i], "-blur") == 0) {
+          int intval;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing value\n");
+            continue;
+          }
+          if (!sscanf(argv[i], "%i", &intval)) {
+            fprintf(stderr, "Bad value (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_image_blur(intval);
+        } else if (strcmp(argv[i], "-sharpen") == 0) {
+          int intval;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing value\n");
+            continue;
+          }
+          if (!sscanf(argv[i], "%i", &intval)) {
+            fprintf(stderr, "Bad value (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_image_sharpen(intval);
+        } else if (strcmp(argv[i], "-contrast") == 0) {
+          double dblval;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing value\n");
+            continue;
+          }
+          if (!sscanf(argv[i], "%lf", &dblval)) {
+            fprintf(stderr, "Bad value (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_modify_color_modifier_contrast(dblval);
+        } else if (strcmp(argv[i], "-brightness") == 0) {
+          double dblval;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing value\n");
+            continue;
+          }
+          if (!sscanf(argv[i], "%lf", &dblval)) {
+            fprintf(stderr, "Bad value (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_modify_color_modifier_brightness(dblval);
+        } else if (strcmp(argv[i], "-gamma") == 0) {
+          double dblval;
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing value\n");
+            continue;
+          }
+          if (!sscanf(argv[i], "%lf", &dblval)) {
+            fprintf(stderr, "Bad value (%s)\n", argv[i]);
+            continue;
+          }
+          imlib_modify_color_modifier_gamma(dblval);
+        } else if (strcmp(argv[i], "-flipv") == 0) {
+          imlib_image_flip_vertical();
+        } else if (strcmp(argv[i], "-fliph") == 0) {
+          imlib_image_flip_horizontal();
+        } else if (strcmp(argv[i], "-flipd") == 0) {
+          imlib_image_flip_diagonal();
+        } else if (strcmp(argv[i], "-write") == 0) {
+          if ((++i) >= argc) {
+            fprintf(stderr, "Missing filename\n");
+            continue;
+          }
+          imlib_save_image(argv[i]);
+        } else {
+          imlib_free_image();
+          imlib_free_color_range();
+          if (modifier != NULL) {
+            imlib_context_set_color_modifier(modifier);
+            imlib_free_color_modifier();
+            modifier = NULL;
+          }
+          XFreePixmap(display, pixmap);
+          usage(argv[0]);
+          fprintf(stderr, "\nunsupported option '%s'\n", argv[i]);
+          exit(1);
         }
-        if (!sscanf(argv[i], "%i", &intval)) {
-          fprintf(stderr, "Bad value (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_image_blur(intval);
-      } else if (strcmp(argv[i], "-sharpen") == 0) {
-        int intval;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing value\n");
-          continue;
-        }
-        if (!sscanf(argv[i], "%i", &intval)) {
-          fprintf(stderr, "Bad value (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_image_sharpen(intval);
-      } else if (strcmp(argv[i], "-contrast") == 0) {
-        double dblval;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing value\n");
-          continue;
-        }
-        if (!sscanf(argv[i], "%lf", &dblval)) {
-          fprintf(stderr, "Bad value (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_modify_color_modifier_contrast(dblval);
-      } else if (strcmp(argv[i], "-brightness") == 0) {
-        double dblval;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing value\n");
-          continue;
-        }
-        if (!sscanf(argv[i], "%lf", &dblval)) {
-          fprintf(stderr, "Bad value (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_modify_color_modifier_brightness(dblval);
-      } else if (strcmp(argv[i], "-gamma") == 0) {
-        double dblval;
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing value\n");
-          continue;
-        }
-        if (!sscanf(argv[i], "%lf", &dblval)) {
-          fprintf(stderr, "Bad value (%s)\n", argv[i]);
-          continue;
-        }
-        imlib_modify_color_modifier_gamma(dblval);
-      } else if (strcmp(argv[i], "-flipv") == 0) {
-        imlib_image_flip_vertical();
-      } else if (strcmp(argv[i], "-fliph") == 0) {
-        imlib_image_flip_horizontal();
-      } else if (strcmp(argv[i], "-flipd") == 0) {
-        imlib_image_flip_diagonal();
-      } else if (strcmp(argv[i], "-write") == 0) {
-        if ((++i) >= argc) {
-          fprintf(stderr, "Missing filename\n");
-          continue;
-        }
-        imlib_save_image(argv[i]);
-      } else {
-        imlib_free_image();
-        imlib_free_color_range();
-        if (modifier != NULL) {
-          imlib_context_set_color_modifier(modifier);
-          imlib_free_color_modifier();
-          modifier = NULL;
-        }
-        XFreePixmap(display, pixmap);
-        usage(argv[0]);
-        fprintf(stderr, "\nunsupported option '%s'\n", argv[i]);
-        exit(1);
       }
-    }
     }
 
     // push final option set
