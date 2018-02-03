@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "outputs.h"
 #include "options.h"
@@ -92,13 +93,13 @@ setRootAtoms(Pixmap pixmap)
   atom_eroot = XInternAtom(display, "ESETROOT_PMAP_ID", False);
 
   if (atom_root == None || atom_eroot == None)
-    return 0;
+    return false;
 
   // setting new background atoms
   XChangeProperty(display, RootWindow(display, screen), atom_root, XA_PIXMAP, 32, PropModeReplace, (unsigned char *) &pixmap, 1);
   XChangeProperty(display, RootWindow(display, screen), atom_eroot, XA_PIXMAP, 32, PropModeReplace, (unsigned char *) &pixmap, 1);
 
-  return 1;
+  return true;
 }
 
 typedef struct {
@@ -146,10 +147,10 @@ int
 parse_color(char *arg, PColor c, int a)
 {
   if (arg[0] != '#')
-    return 0;
+    return false;
 
   if ((strlen(arg) != 7) && (strlen(arg) != 9))
-    return 0;
+    return false;
 
   c->r = getHex(arg[1]) * 16 + getHex(arg[2]);
   c->g = getHex(arg[3]) * 16 + getHex(arg[4]);
@@ -159,13 +160,14 @@ parse_color(char *arg, PColor c, int a)
   if (strlen(arg) == 9)
     c->a = getHex(arg[7]) * 16 + getHex(arg[8]);
 
-  return 1;
+  return true;
 }
 
 
 int
 load_image(Imlib_Image rootimg, Options *options)
 {
+  int res = true;
   int imgW, imgH, o;
   Imlib_Image buffer = imlib_load_image(options->image_mode_arg);
   ImageMode image_mode = options->image_mode;
@@ -174,7 +176,7 @@ load_image(Imlib_Image rootimg, Options *options)
   int alpha = options->alpha;
 
   if (!buffer)
-    return 0;
+    return false;
 
   imlib_context_set_image(buffer);
   imgW = imlib_image_get_width();
@@ -256,7 +258,7 @@ load_image(Imlib_Image rootimg, Options *options)
 
   imlib_context_set_image(rootimg);
 
-  return 1;
+  return res;
 }
 
 int
@@ -300,7 +302,7 @@ main(int argc, char **argv)
       fprintf(stderr, "Missing value\n");
       continue;
     }
-    if ((sscanf(argv[i], "%i", &intval) == 0) || (intval < 0)) {
+    if ((!sscanf(argv[i], "%i", &intval)) || (intval < 0)) {
       fprintf(stderr, "Bad value (%s)\n", argv[i]);
       continue;
     }
@@ -380,7 +382,7 @@ main(int argc, char **argv)
           fprintf (stderr, "Missing alpha\n");
           continue;
         }
-        if (sscanf(argv[i], "%i", &options.alpha) == 0) {
+        if (!sscanf(argv[i], "%i", &options.alpha)) {
           fprintf (stderr, "Bad alpha (%s)\n", argv[i]);
           continue;
         }
@@ -390,7 +392,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (parse_color(argv[i], &c, options.alpha) == 0) {
+        if (!parse_color(argv[i], &c, options.alpha)) {
           fprintf (stderr, "Bad color (%s)\n", argv[i]);
           continue;
         }
@@ -405,7 +407,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (parse_color(argv[i], &c, options.alpha) == 0) {
+        if (!parse_color(argv[i], &c, options.alpha)) {
           fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
           continue;
         }
@@ -422,11 +424,11 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing distance\n");
           continue;
         }
-        if (parse_color(argv[i - 1], &c, options.alpha) == 0) {
+        if (!parse_color(argv[i - 1], &c, options.alpha)) {
           fprintf (stderr, "Bad color (%s)\n", argv[i - 1]);
           continue;
         }
-        if (sscanf(argv[i], "%i", &distance) == 0) {
+        if (!sscanf(argv[i], "%i", &distance)) {
           fprintf(stderr, "Bad distance (%s)\n", argv[i]);
           continue;
         }
@@ -438,7 +440,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing angle\n");
           continue;
         }
-        if (sscanf(argv[i], "%i", &angle) == 0) {
+        if (!sscanf(argv[i], "%i", &angle)) {
           fprintf (stderr, "Bad angle (%s)\n", argv[i]);
           continue;
         }
@@ -450,7 +452,7 @@ main(int argc, char **argv)
         }
         options.image_mode = Fill;
         options.image_mode_arg = argv[i];
-        if (load_image(image, &options) == 0) {
+        if (!load_image(image, &options)) {
           fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
@@ -461,7 +463,7 @@ main(int argc, char **argv)
         }
         options.image_mode = Full;
         options.image_mode_arg = argv[i];
-        if (load_image(image, &options) == 0) {
+        if (!load_image(image, &options)) {
           fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
@@ -472,7 +474,7 @@ main(int argc, char **argv)
         }
         options.image_mode = Xtend;
         options.image_mode_arg = argv[i];
-        if (load_image(image, &options) == 0) {
+        if (!load_image(image, &options)) {
           fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
@@ -483,7 +485,7 @@ main(int argc, char **argv)
         }
         options.image_mode = Tile;
         options.image_mode_arg = argv[i];
-        if (load_image(image, &options) == 0) {
+        if (!load_image(image, &options)) {
           fprintf(stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
@@ -494,7 +496,7 @@ main(int argc, char **argv)
         }
         options.image_mode = Center;
         options.image_mode_arg = argv[i];
-        if (load_image(image, &options) == 0) {
+        if (!load_image(image, &options)) {
           fprintf (stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
@@ -505,7 +507,7 @@ main(int argc, char **argv)
         }
         options.image_mode = Cover;
         options.image_mode_arg = argv[i];
-        if (load_image(image, &options) == 0) {
+        if (!load_image(image, &options)) {
           fprintf (stderr, "Bad image (%s)\n", options.image_mode_arg);
           continue;
         }
@@ -518,7 +520,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing color\n");
           continue;
         }
-        if (parse_color(argv[i], &c, 255) == 0) {
+        if (!parse_color(argv[i], &c, 255)) {
           fprintf(stderr, "Bad color\n");
           continue;
         }
@@ -538,7 +540,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing value\n");
           continue;
         }
-        if (sscanf(argv[i], "%i", &intval) == 0) {
+        if (!sscanf(argv[i], "%i", &intval)) {
           fprintf(stderr, "Bad value (%s)\n", argv[i]);
           continue;
         }
@@ -549,7 +551,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing value\n");
           continue;
         }
-        if (sscanf(argv[i], "%i", &intval) == 0) {
+        if (!sscanf(argv[i], "%i", &intval)) {
           fprintf(stderr, "Bad value (%s)\n", argv[i]);
           continue;
         }
@@ -560,7 +562,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing value\n");
           continue;
         }
-        if (sscanf(argv[i], "%lf", &dblval) == 0) {
+        if (!sscanf(argv[i], "%lf", &dblval)) {
           fprintf(stderr, "Bad value (%s)\n", argv[i]);
           continue;
         }
@@ -571,7 +573,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing value\n");
           continue;
         }
-        if (sscanf(argv[i], "%lf", &dblval) == 0) {
+        if (!sscanf(argv[i], "%lf", &dblval)) {
           fprintf(stderr, "Bad value (%s)\n", argv[i]);
           continue;
         }
@@ -582,7 +584,7 @@ main(int argc, char **argv)
           fprintf(stderr, "Missing value\n");
           continue;
         }
-        if (sscanf(argv[i], "%lf", &dblval) == 0) {
+        if (!sscanf(argv[i], "%lf", &dblval)) {
           fprintf(stderr, "Bad value (%s)\n", argv[i]);
           continue;
         }
@@ -631,7 +633,7 @@ main(int argc, char **argv)
     imlib_free_image();
     imlib_free_color_range();
 
-    if (setRootAtoms(pixmap) == 0)
+    if (!setRootAtoms(pixmap))
       fprintf(stderr, "Couldn't create atoms...\n");
 
     XKillClient(display, AllTemporary);
