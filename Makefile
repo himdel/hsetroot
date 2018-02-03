@@ -1,23 +1,33 @@
+SRC=./src/
+
+INSTALL_PREFIX=/usr/local/bin
+VERBOSE=@
 CC?=gcc
 PKG_CONFIG?=pkg-config
 
 CFLAGS?=-g -O2 -Wall
+CFLAGS_DEBUG=-ggdb3 -gdwarf-2 -O0 -Wall
+
+CFLAGS_EXTRA=$(shell $(PKG_CONFIG) x11 --cflags) $(shell $(PKG_CONFIG) imlib2 --cflags)
+
 LDFLAGS?=
+LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs) $(shell $(PKG_CONFIG) imlib2 --libs)
 
-CFLAGS+=$(shell $(PKG_CONFIG) x11 --cflags)
-LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs)
+BINARY=hsetroot
+OBJS=$(SRC)$(BINARY).o $(SRC)outputs.o $(SRC)options.o
 
-CFLAGS+=$(shell $(PKG_CONFIG) imlib2 --cflags)
-LDFLAGS+=$(shell $(PKG_CONFIG) imlib2 --libs)
+$(BINARY): $(OBJS)
+	$(VERBOSE)$(CC) $(CFLAGS) $(CFLAGS_EXTRA) $^ -o $@ $(LDFLAGS)
 
-hsetroot: hsetroot.o outputs_xrandr.o
+$(SRC)%.o: $(SRC)%.c $(SRC)%.h
+	$(VERBOSE)$(CC) -c $(CFLAGS) $(CFLAGS_EXTRA) $< -o $@
 
-hsetroot.o: hsetroot.c outputs.h
-
-outputs.o: outputs.c outputs.h
+debug: CFLAGS=$(CFLAGS_DEBUG)
+debug: VERBOSE=
+debug: $(BINARY)
 
 install: hsetroot
-	install -st /usr/local/bin/ hsetroot
+	$(VERBOSE)install -st $(INSTALL_PREFIX) $(BINARY)
 
 clean:
-	rm -f hsetroot *.o
+	$(VERBOSE)rm -f hsetroot $(SRC)*.o
