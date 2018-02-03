@@ -24,7 +24,7 @@ usage(char *commandline)
     " -outputs                   List screen outputs detected via xrandr\n"
     " -output <name>             Apply to xrandr output 'name' only*\n"
     "\n"
-    "*supports: images [all], solid, manipulation [alpha]\n"
+    "*supports: images [all], solid, manipulation [alpha, blur, sharpen]\n"
     "\n"
     "Gradients:\n"
     " -add <color>               Add color to range using distance 1\n"
@@ -214,6 +214,12 @@ overlay_effects(Imlib_Image root_image, Options *options)
       imlib_apply_color_modifier();
       imlib_free_color_modifier();
     }
+
+    if (options->set_blur)
+      imlib_image_blur(options->blur_level);
+
+    if (options->set_sharpen)
+      imlib_image_sharpen(options->sharpen_level);
 
     if (options->effects_mode == Output) {
       // overlay modified buffer to root
@@ -547,6 +553,28 @@ main(int argc, char **argv)
         }
         options.set_alpha = 1;
         options_set = 1;
+      } else if (strcmp(argv[i], "-blur") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing blur value\n");
+          continue;
+        }
+        if (!sscanf(argv[i], "%i", &options.blur_level)) {
+          fprintf(stderr, "Bad blur value (%s)\n", argv[i]);
+          continue;
+        }
+        options.set_blur = 1;
+        options_set = 1;
+      } else if (strcmp(argv[i], "-sharpen") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing sharpen value\n");
+          continue;
+        }
+        if (!sscanf(argv[i], "%i", &options.sharpen_level)) {
+          fprintf(stderr, "Bad sharpen value (%s)\n", argv[i]);
+          continue;
+        }
+        options.set_sharpen = 1;
+        options_set = 1;
 
       ////////////////////
       // global only options
@@ -636,28 +664,6 @@ main(int argc, char **argv)
           }
 
           imlib_set_color_modifier_tables(r, g, b, a);
-        } else if (strcmp(argv[i], "-blur") == 0) {
-          int intval;
-          if ((++i) >= argc) {
-            fprintf(stderr, "Missing value\n");
-            continue;
-          }
-          if (!sscanf(argv[i], "%i", &intval)) {
-            fprintf(stderr, "Bad value (%s)\n", argv[i]);
-            continue;
-          }
-          imlib_image_blur(intval);
-        } else if (strcmp(argv[i], "-sharpen") == 0) {
-          int intval;
-          if ((++i) >= argc) {
-            fprintf(stderr, "Missing value\n");
-            continue;
-          }
-          if (!sscanf(argv[i], "%i", &intval)) {
-            fprintf(stderr, "Bad value (%s)\n", argv[i]);
-            continue;
-          }
-          imlib_image_sharpen(intval);
         } else if (strcmp(argv[i], "-contrast") == 0) {
           double dblval;
           if ((++i) >= argc) {

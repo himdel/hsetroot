@@ -19,9 +19,13 @@ typedef struct {
   const char *image_mode_arg;
   char *solid_colour;
   int alpha_level;
+  int blur_level;
+  int sharpen_level;
   // option switches
   bool set_solid;
   bool set_alpha;
+  bool set_blur;
+  bool set_sharpen;
 } Options;
 
 void options_default(Options*);

@@ -16,4 +16,6 @@ options_default(Options* options)
   options->alpha_level = DEFAULT_ALPHA_LEVEL;
   options->set_solid = false;
   options->set_alpha = false;
+  options->set_blur = false;
+  options->set_sharpen = false;
 }
