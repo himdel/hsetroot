@@ -36,7 +36,7 @@ usage(char *commandline)
     " -tile <image>              Render an image tiled\n"
     " -full <image>              Render an image maximum aspect\n"
     " -extend <image>            Render an image max aspect and fill borders\n"
-    " -fill <image>              Render an image strechted\n"
+    " -fill <image>              Render an image stretched\n"
     "\n"
     "Manipulations:\n"
     " -tint <color>              Tint the current image\n"
