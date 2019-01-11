@@ -1,0 +1,32 @@
+# Contributor: Justin Charette <charetjc at gmail dot com>
+# Contributor: Daniel M. Capella <polyzen@archlinux.org>
+
+_gitname=hsetroot
+pkgname=himdel-hsetroot-git
+pkgver=1.0.2.r29.ga624810
+pkgrel=1
+pkgdesc='A tool which allows you to compose wallpapers for X.  A fork of hsetroot by Hyriand.'
+arch=('x86_64')
+url=http://github.com/himdel/hsetroot
+license=('GPL2')
+depends=('imlib2' 'xorg-xrandr')
+makedepends=('git')
+provides=('hsetroot')
+conflicts=('hsetroot')
+source=("git+$url.git")
+md5sums=('SKIP')
+
+pkgver() {
+  cd $_gitname
+  git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+build() {
+  cd $_gitname
+  LDFLAGS+=",--no-as-needed" make
+}
+
+package() {
+  cd $_gitname
+  install -Dt "$pkgdir"/usr/bin hsetroot
+}
