@@ -22,8 +22,6 @@ hsetroot: hsetroot.o outputs_xrandr.o
 
 hsetroot.o: hsetroot.c outputs.h
 
-outputs.o: outputs.c outputs.h
-
 outputs_xrandr.o: outputs_xrandr.c outputs.h
 
 install: hsetroot
