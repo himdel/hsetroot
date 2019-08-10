@@ -27,8 +27,9 @@ hsetroot: hsetroot.o
 
 hsr-outputs: hsr-outputs.o
 
-install: hsetroot
+install: hsetroot hsr-outputs
 	install -st /usr/local/bin/ hsetroot
+	install -st /usr/local/bin/ hsr-outputs
 
 clean:
 	rm -f *.o hsetroot hsr-outputs
