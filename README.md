@@ -2,7 +2,7 @@ hsetroot - imlib2-based wallpaper changer
 
 original author: `Hyriand <hyriand@thegraveyard.org>` (2003)  
 licence: GPL2  
-needs libimlib2-dev, libx11-dev, pkg-config, make
+needs libimlib2-dev, libx11-dev, libxrandr-dev, pkg-config, make
 
 This repo contains hsetroot 1.0.2 with the following changes:
 
@@ -12,9 +12,7 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * Add the '-extend' option
      * Add the '-cover' option
    * reintroduced the screen mask `-screens` option from earlier versions .. which is rather useless actually, as it deals with X screens, not xrandr outputs
-   * **added output support for all modes**
-     * currently needs the xrandr, grep & sed commands in $PATH
-     * yes, I'm sorry, I tried, but libxrandr would only return zeroes in XRRPanning for some reason
+   * **added output support for all modes**, using xinerama
 
 
 current TODO:
