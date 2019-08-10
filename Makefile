@@ -18,14 +18,21 @@ LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs)
 CFLAGS+=$(shell $(PKG_CONFIG) imlib2 --cflags)
 LDFLAGS+=$(shell $(PKG_CONFIG) imlib2 --libs)
 
+CFLAGS+=$(shell $(PKG_CONFIG) xinerama --cflags)
+LDFLAGS+=$(shell $(PKG_CONFIG) xinerama --libs)
+
+all: hsetroot hsr-outputs
+
 hsetroot: hsetroot.o outputs_xrandr.o
 
 hsetroot.o: hsetroot.c outputs.h
 
 outputs_xrandr.o: outputs_xrandr.c outputs.h
 
+hsr-outputs: hsr-outputs.o
+
 install: hsetroot
 	install -st /usr/local/bin/ hsetroot
 
 clean:
-	rm -f hsetroot *.o
+	rm -f *.o hsetroot hsr-outputs
