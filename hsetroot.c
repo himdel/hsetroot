@@ -1,11 +1,10 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/Xinerama.h>
 #include <Imlib2.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-#include "outputs.h"
 
 
 typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
@@ -163,7 +162,7 @@ parse_color(char *arg, PColor c, int a)
 
 
 int
-load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, OutputInfo *outputs, int noutputs)
+load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, XineramaScreenInfo *outputs, int noutputs)
 {
   int imgW, imgH, o;
   Imlib_Image buffer = imlib_load_image(arg);
@@ -194,20 +193,20 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Outp
   imlib_context_set_image(rootimg);
 
   for (int i = 0; i < noutputs; i++) {
-    OutputInfo o = outputs[i];
-    printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.w, o.h, o.x, o.y);
+    XineramaScreenInfo o = outputs[i];
+    printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.width, o.height, o.x_org, o.y_org);
 
     if (mode == Fill) {
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.w, o.h);
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org, o.y_org, o.width, o.height);
     } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
-      double aspect = ((double) o.w) / imgW;
-      if (((int) (imgH * aspect) > o.h) != /*xor*/ (mode == Cover))
-        aspect = (double) o.h / (double) imgH;
+      double aspect = ((double) o.width) / imgW;
+      if (((int) (imgH * aspect) > o.height) != /*xor*/ (mode == Cover))
+        aspect = (double) o.height / (double) imgH;
 
-      int top = (o.h - (int) (imgH * aspect)) / 2;
-      int left = (o.w - (int) (imgW * aspect)) / 2;
+      int top = (o.height - (int) (imgH * aspect)) / 2;
+      int left = (o.width - (int) (imgW * aspect)) / 2;
 
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, (int) (imgW * aspect), (int) (imgH * aspect));
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, (int) (imgW * aspect), (int) (imgH * aspect));
 
       if (mode == Xtend) {
         int w;
@@ -215,34 +214,34 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Outp
         if (left > 0) {
           int right = left - 1 + (int) (imgW * aspect);
           /* check only the right border - left is int divided so the right border is larger */
-          for (w = 1; right + w < o.w; w <<= 1) {
-            imlib_image_copy_rect(o.x + left + 1 - w, o.y, w, o.h, o.x + left + 1 - w - w, o.y);
-            imlib_image_copy_rect(o.x + right, o.y, w, o.h, o.x + right + w, o.y);
+          for (w = 1; right + w < o.width; w <<= 1) {
+            imlib_image_copy_rect(o.x_org + left + 1 - w, o.y_org, w, o.height, o.x_org + left + 1 - w - w, o.y_org);
+            imlib_image_copy_rect(o.x_org + right, o.y_org, w, o.height, o.x_org + right + w, o.y_org);
           }
         }
 
         if (top > 0) {
           int bottom = top - 1 + (int) (imgH * aspect);
-          for (w = 1; (bottom + w < o.h); w <<= 1) {
-            imlib_image_copy_rect(o.x, o.y + top + 1 - w, o.w, w, o.x, o.y + top + 1 - w - w);
-            imlib_image_copy_rect(o.x, o.y + bottom, o.w, w, o.x, o.y + bottom + w);
+          for (w = 1; (bottom + w < o.height); w <<= 1) {
+            imlib_image_copy_rect(o.x_org, o.y_org + top + 1 - w, o.width, w, o.x_org, o.y_org + top + 1 - w - w);
+            imlib_image_copy_rect(o.x_org, o.y_org + bottom, o.width, w, o.x_org, o.y_org + bottom + w);
           }
         }
       }
     } else {  // Center || Tile
-      int left = (o.w - imgW) / 2;
-      int top = (o.h - imgH) / 2;
+      int left = (o.width - imgW) / 2;
+      int top = (o.height - imgH) / 2;
 
       if (mode == Tile) {
         int x, y;
         for (; left > 0; left -= imgW);
         for (; top > 0; top -= imgH);
 
-        for (x = left; x < o.w; x += imgW)
-          for (y = top; y < o.h; y += imgH)
-            imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + x, o.y + y, imgW, imgH);
+        for (x = left; x < o.width; x += imgW)
+          for (y = top; y < o.height; y += imgH)
+            imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + x, o.y_org + y, imgW, imgH);
       } else {
-        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, imgW, imgH);
+        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, imgW, imgH);
       }
     }
   }
@@ -327,7 +326,7 @@ main(int argc, char **argv)
     alpha = 255;
 
     int noutputs = 0;
-    OutputInfo *outputs = outputs_list(&noutputs);
+    XineramaScreenInfo *outputs = XineramaQueryScreens(display, &noutputs);
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
@@ -567,7 +566,7 @@ main(int argc, char **argv)
     }
 
     if (outputs != NULL) {
-      outputs_free(outputs);
+      XFree(outputs);
       outputs = NULL;
       noutputs = 0;
     }

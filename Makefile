@@ -23,11 +23,7 @@ LDFLAGS+=$(shell $(PKG_CONFIG) xinerama --libs)
 
 all: hsetroot hsr-outputs
 
-hsetroot: hsetroot.o outputs_xrandr.o
-
-hsetroot.o: hsetroot.c outputs.h
-
-outputs_xrandr.o: outputs_xrandr.c outputs.h
+hsetroot: hsetroot.o
 
 hsr-outputs: hsr-outputs.o
 
