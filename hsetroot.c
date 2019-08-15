@@ -52,7 +52,7 @@ usage(char *commandline)
     " -alpha <amount>            Adjust alpha level for colors and images\n"
     " -write <filename>          Write current image to file\n"
     "\n"
-    "Colors are in the #rrggbb or #rrggbbaa format.\n"
+    "Colors are in the #rgb, #rrggbb, #rrggbbaa, rgb:1/2/3 formats or a X color name.\n"
     "\n"
     "Create issues at https://github.com/himdel/hsetroot/issues\n\n"
   , commandline);
@@ -101,65 +101,33 @@ setRootAtoms(Pixmap pixmap)
 
 typedef struct {
   int r, g, b, a;
-} Color, *PColor;
+} Color;
 
 int
-getHex(char c)
+parse_color(char *arg, Color *c, int default_alpha)
 {
-  switch (c) {
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9':
-      return c - '0';
+  Colormap colormap = DefaultColormap(display, screen);
+  XColor color;
 
-    case 'A':
-    case 'B':
-    case 'C':
-    case 'D':
-    case 'E':
-    case 'F':
-      return c - 'A' + 10;
+  c->a = default_alpha;
 
-    case 'a':
-    case 'b':
-    case 'c':
-    case 'd':
-    case 'e':
-    case 'f':
-      return c - 'a' + 10;
-
-    default:
-      return 0;
+  // we support #rrggbbaa..
+  if ((arg[0] == '#') && (strlen(arg) == 9)) {
+    sscanf(arg + 7, "%2x", &(c->a));
+    // ..but XParseColor wouldn't
+    arg[7] = 0;
   }
-}
 
-int
-parse_color(char *arg, PColor c, int a)
-{
-  if (arg[0] != '#')
+  Status ret = XParseColor(display, colormap, arg, &color);
+  if (ret == 0)
     return 0;
 
-  if ((strlen(arg) != 7) && (strlen(arg) != 9))
-    return 0;
-
-  c->r = getHex(arg[1]) * 16 + getHex(arg[2]);
-  c->g = getHex(arg[3]) * 16 + getHex(arg[4]);
-  c->b = getHex(arg[5]) * 16 + getHex(arg[6]);
-  c->a = a;
-
-  if (strlen(arg) == 9)
-    c->a = getHex(arg[7]) * 16 + getHex(arg[8]);
+  c->r = color.red >> 8;
+  c->g = color.green >> 8;
+  c->b = color.blue >> 8;
 
   return 1;
 }
-
 
 int
 load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, XineramaScreenInfo *outputs, int noutputs)
