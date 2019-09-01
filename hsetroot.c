@@ -227,17 +227,15 @@ main(int argc, char **argv)
 {
   Visual *vis;
   Colormap cm;
-  Display *_display;
-  Imlib_Context *context;
   Imlib_Image image;
   int width, height, depth, i, alpha;
   Pixmap pixmap;
   Imlib_Color_Modifier modifier = NULL;
   unsigned long screen_mask = ~0;
 
-  /* global */ _display = XOpenDisplay(NULL);
+  /* global */ display = XOpenDisplay(NULL);
 
-  if (!_display) {
+  if (!display) {
     fprintf(stderr, "Cannot open X display!\n");
     exit(123);
   }
@@ -259,13 +257,14 @@ main(int argc, char **argv)
     screen_mask = intval;
   }
 
-  for (/* global */ screen = 0; screen < ScreenCount(_display); screen++) {
+  int noutputs = 0;
+  XineramaScreenInfo *outputs = XineramaQueryScreens(display, &noutputs);
+
+  for (/* global */ screen = 0; screen < ScreenCount(display); screen++) {
     if ((screen_mask & (1 << screen)) == 0)
       continue;
 
-    display = XOpenDisplay(NULL);
-
-    context = imlib_context_new();
+    Imlib_Context *context = imlib_context_new();
     imlib_context_push(context);
 
     imlib_context_set_display(display);
@@ -292,9 +291,6 @@ main(int argc, char **argv)
     imlib_context_set_blend(1);
 
     alpha = 255;
-
-    int noutputs = 0;
-    XineramaScreenInfo *outputs = XineramaQueryScreens(display, &noutputs);
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
@@ -533,12 +529,6 @@ main(int argc, char **argv)
       }
     }
 
-    if (outputs != NULL) {
-      XFree(outputs);
-      outputs = NULL;
-      noutputs = 0;
-    }
-
     if (modifier != NULL) {
       imlib_context_set_color_modifier(modifier);
       imlib_apply_color_modifier();
@@ -564,6 +554,12 @@ main(int argc, char **argv)
 
     imlib_context_pop();
     imlib_context_free(context);
+  }
+
+  if (outputs != NULL) {
+    XFree(outputs);
+    outputs = NULL;
+    noutputs = 0;
   }
 
   return 0;
