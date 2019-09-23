@@ -4,6 +4,8 @@ PKG_CONFIG?=pkg-config
 CFLAGS?=-g -O2 -Wall
 LDFLAGS?=
 
+PREFIX?=/usr/local
+
 # arch hardening
 #CPPFLAGS+=-D_FORTIFY_SOURCE=2
 #CFLAGS+=-march=x86-64 -mtune=generic -O2 -pipe -fno-plt
@@ -28,8 +30,8 @@ hsetroot: hsetroot.o
 hsr-outputs: hsr-outputs.o
 
 install: hsetroot hsr-outputs
-	install -st /usr/local/bin/ hsetroot
-	install -st /usr/local/bin/ hsr-outputs
+	install -st $(PREFIX)/bin/ hsetroot
+	install -st $(PREFIX)/bin/ hsr-outputs
 
 clean:
 	rm -f *.o hsetroot hsr-outputs
