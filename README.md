@@ -13,4 +13,5 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * Add the '-cover' option
    * reintroduced the screen mask `-screens` option from earlier versions .. which is rather useless actually, as it deals with X screens, not xrandr outputs
    * **added output support for all modes**, using xinerama
+     * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)

@@ -2,9 +2,10 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/Xinerama.h>
 #include <Imlib2.h>
-#include <string.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
@@ -18,6 +19,7 @@ usage(char *commandline)
     "Syntax: %s [command1 [arg1..]] [command2 [arg1..]]..."
     "\n"
     "Generic Options:\n"
+    " -root                      Treat multiple displays as one big screen (ignore xrandr outputs)\n"
     " -screens <int>             Set a screenmask to use\n"
     "\n"
     "Gradients:\n"
@@ -232,6 +234,7 @@ main(int argc, char **argv)
   Pixmap pixmap;
   Imlib_Color_Modifier modifier = NULL;
   unsigned long screen_mask = ~0;
+  int opt_root = false;
 
   /* global */ display = XOpenDisplay(NULL);
 
@@ -242,23 +245,44 @@ main(int argc, char **argv)
 
   // global options
   for (i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "-screens"))
-      continue;
+    if (strcmp(argv[i], "-screens") == 0) {
+      int intval;
 
-    int intval;
-    if ((++i) >= argc) {
-      fprintf(stderr, "Missing value\n");
+      if ((++i) >= argc) {
+        fprintf(stderr, "Missing value\n");
+        continue;
+      }
+
+      if ((sscanf(argv[i], "%i", &intval) == 0) || (intval < 0)) {
+        fprintf(stderr, "Bad value (%s)\n", argv[i]);
+        continue;
+      }
+
+      screen_mask = intval;
       continue;
     }
-    if ((sscanf(argv[i], "%i", &intval) == 0) || (intval < 0)) {
-      fprintf(stderr, "Bad value (%s)\n", argv[i]);
+
+    if (strcmp(argv[i], "-root") == 0) {
+      opt_root = true;
       continue;
     }
-    screen_mask = intval;
   }
 
   int noutputs = 0;
-  XineramaScreenInfo *outputs = XineramaQueryScreens(display, &noutputs);
+  XineramaScreenInfo *outputs = NULL;
+
+  if (opt_root) {
+    XineramaScreenInfo fake = {
+      .x_org = 0,
+      .y_org = 0,
+      .width = 0,
+      .height = 0,
+    };
+    noutputs = 1;
+    outputs = &fake;
+  } else {
+    outputs = XineramaQueryScreens(display, &noutputs);
+  }
 
   for (/* global */ screen = 0; screen < ScreenCount(display); screen++) {
     if ((screen_mask & (1 << screen)) == 0)
@@ -273,6 +297,11 @@ main(int argc, char **argv)
     width = DisplayWidth(display, screen);
     height = DisplayHeight(display, screen);
     depth = DefaultDepth(display, screen);
+
+    if (opt_root) {
+      outputs[0].width = width;
+      outputs[0].height = height;
+    }
 
     pixmap = XCreatePixmap(display, RootWindow(display, screen), width, height, depth);
 
@@ -512,6 +541,8 @@ main(int argc, char **argv)
           continue;
         }
         imlib_save_image(argv[i]);
+      } else if (strcmp(argv[i], "-root") == 0) {
+        /* handled as global, just skipping here, no arg */
       } else if (strcmp(argv[i], "-screens") == 0) {
         /* handled as global, just skipping here, + arg */
         i++;
@@ -557,7 +588,10 @@ main(int argc, char **argv)
   }
 
   if (outputs != NULL) {
-    XFree(outputs);
+    if (!opt_root) {
+      XFree(outputs);
+    }
+
     outputs = NULL;
     noutputs = 0;
   }
