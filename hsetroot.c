@@ -271,13 +271,14 @@ main(int argc, char **argv)
   int noutputs = 0;
   XineramaScreenInfo *outputs = NULL;
 
+  XineramaScreenInfo fake = {
+    .x_org = 0,
+    .y_org = 0,
+    .width = 0,
+    .height = 0,
+  };
+
   if (opt_root) {
-    XineramaScreenInfo fake = {
-      .x_org = 0,
-      .y_org = 0,
-      .width = 0,
-      .height = 0,
-    };
     noutputs = 1;
     outputs = &fake;
   } else {
