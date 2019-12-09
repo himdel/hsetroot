@@ -314,13 +314,13 @@ main(int argc, char **argv)
     image = imlib_create_image(width, height);
     imlib_context_set_image(image);
 
-    imlib_context_set_color(0, 0, 0, 255);
+    imlib_context_set_color(0, 0, 0, 0);
     imlib_image_fill_rectangle(0, 0, width, height);
 
     imlib_context_set_dither(1);
     imlib_context_set_blend(1);
 
-    alpha = 255;
+    alpha = 0;
 
     for (i = 1; i < argc; i++) {
       if (modifier != NULL) {
