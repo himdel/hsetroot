@@ -168,20 +168,24 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Xine
 
     if (mode == Fill) {
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org, o.y_org, o.width, o.height);
-    } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
+    } else if (mode == Cover) {
       double aspect = ((double) o.width) / imgW;
-      if (((int) (imgH * aspect) > o.height) != /*xor*/ (mode == Cover))
+      if ((int) (imgH * aspect) < o.height)
+        aspect = (double) o.height / (double) imgH;
+
+      int iwidth = (int) (o.width / aspect);
+      int iheight = (int) (o.height / aspect);
+
+      imlib_blend_image_onto_image(buffer, 0, (imgW - iwidth) / 2, (imgH - iheight) / 2, iwidth, iheight, o.x_org, o.y_org, o.width, o.height);
+    } else if ((mode == Full) || (mode == Xtend)) {
+      double aspect = ((double) o.width) / imgW;
+      if ((int) (imgH * aspect) > o.height)
         aspect = (double) o.height / (double) imgH;
 
       int top = (o.height - (int) (imgH * aspect)) / 2;
       int left = (o.width - (int) (imgW * aspect)) / 2;
-      int iwidth = (int) (o.width / aspect);
-      int iheight = (int) (o.height / aspect);
 
-      if (mode == Cover)
-        imlib_blend_image_onto_image(buffer, 0, (imgW - iwidth) / 2, (imgH - iheight) / 2, iwidth, iheight, o.x_org, o.y_org, o.width, o.height);
-      else
-        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, (int) (imgW * aspect), (int) (imgH * aspect));
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, (int) (imgW * aspect), (int) (imgH * aspect));
 
       if (mode == Xtend) {
         int w;
