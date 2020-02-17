@@ -175,8 +175,13 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Xine
 
       int top = (o.height - (int) (imgH * aspect)) / 2;
       int left = (o.width - (int) (imgW * aspect)) / 2;
+      int iwidth = (int) (o.width / aspect);
+      int iheight = (int) (o.height / aspect);
 
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, (int) (imgW * aspect), (int) (imgH * aspect));
+      if (mode == Cover)
+        imlib_blend_image_onto_image(buffer, 0, (imgW - iwidth) / 2, (imgH - iheight) / 2, iwidth, iheight, o.x_org, o.y_org, o.width, o.height);
+      else
+        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, (int) (imgW * aspect), (int) (imgH * aspect));
 
       if (mode == Xtend) {
         int w;
