@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 
 typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
 
@@ -169,12 +171,9 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Xine
     if (mode == Fill) {
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org, o.y_org, o.width, o.height);
     } else if (mode == Cover) {
-      double aspect = ((double) o.width) / imgW;
-      if ((int) (imgH * aspect) < o.height)
-        aspect = (double) o.height / (double) imgH;
-
-      int iwidth = (int) (o.width / aspect);
-      int iheight = (int) (o.height / aspect);
+      // Height and width of the portion of the image to use
+      int iwidth = MIN(imgW, imgH * o.width / o.height);
+      int iheight = MIN(imgH, imgW * o.height / o.width);
 
       imlib_blend_image_onto_image(buffer, 0, (imgW - iwidth) / 2, (imgH - iheight) / 2, iwidth, iheight, o.x_org, o.y_org, o.width, o.height);
     } else if ((mode == Full) || (mode == Xtend)) {
