@@ -12,7 +12,11 @@ PREFIX?=/usr/local
 #LDFLAGS+=-Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now
 
 # arch & debian hardening workaround
-LDFLAGS+=-Wl,--no-as-needed
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+	LDFLAGS+=-Wl,--no-as-needed
+endif
+
 
 CFLAGS+=$(shell $(PKG_CONFIG) x11 --cflags)
 LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs)
