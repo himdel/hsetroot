@@ -47,8 +47,8 @@ enum Format { TEXT, CSV, JSON };
 int
 main(int argc, char **argv)
 {
-	Display *display;
-	if (!(display = XOpenDisplay(NULL))) {
+	Display *display = XOpenDisplay(NULL);
+	if (! display) {
 		fprintf(stderr, "Cannot open X display!\n");
 		exit(123);
 	}
