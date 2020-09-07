@@ -47,7 +47,11 @@ enum Format { TEXT, CSV, JSON };
 int
 main(int argc, char **argv)
 {
-	Display *display = XOpenDisplay(NULL);
+	Display *display;
+	if (!(display = XOpenDisplay(NULL))) {
+		fprintf(stderr, "Cannot open X display!\n");
+		exit(123);
+	}
 
 	enum Format format = TEXT;
 	void (*print)(XineramaScreenInfo*) = print_text;
