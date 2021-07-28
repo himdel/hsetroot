@@ -165,6 +165,7 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Xine
   for (int i = 0; i < noutputs; i++) {
     XineramaScreenInfo o = outputs[i];
     printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.width, o.height, o.x_org, o.y_org);
+    imlib_context_set_cliprect(o.x_org, o.y_org, o.width, o.height);
 
     if (mode == Fill) {
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org, o.y_org, o.width, o.height);
