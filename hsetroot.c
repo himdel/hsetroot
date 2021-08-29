@@ -73,7 +73,7 @@ setRootAtoms(Pixmap pixmap)
   int format;
   unsigned long length, after;
 
-  atom_root = XInternAtom(display, "_XROOTMAP_ID", True);
+  atom_root = XInternAtom(display, "_XROOTPMAP_ID", True);
   atom_eroot = XInternAtom(display, "ESETROOT_PMAP_ID", True);
 
   // doing this to clean up after old background
