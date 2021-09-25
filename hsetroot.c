@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
+typedef enum { Full, Fill, Center, Tile, Xtend, Cover, Zoom } ImageMode;
 
 void
 usage(char *commandline)
@@ -38,6 +38,7 @@ usage(char *commandline)
     " -full <image>              Render an image maximum aspect\n"
     " -extend <image>            Render an image max aspect and fill borders\n"
     " -fill <image>              Render an image stretched\n"
+    " -zoom <image>              Render an image scaled and keep the aspect ratio through cropping\n"
     "\n"
     "Manipulations:\n"
     " -tint <color>              Tint the current image\n"
@@ -199,6 +200,22 @@ load_image(ImageMode mode, const char *arg, int alpha, Imlib_Image rootimg, Xine
           }
         }
       }
+    } else if (mode == Zoom) {
+      int top = 0, left = 0;
+      int width = imgW, height = imgH;
+      double aspect;
+
+      if (imgH < imgW) {
+        aspect = (double) imgH / o.height;
+        width = o.width * aspect;
+        left = abs((imgW / 2) - (width / 2));
+      } else {
+        aspect = (double) imgW / o.width;
+        height = o.height * aspect;
+        top = abs((imgH / 2) - (height / 2));
+      }
+
+      imlib_blend_image_onto_image(buffer, 0, left, top, width, height, o.x_org, o.y_org, o.width, o.height);
     } else {  // Center || Tile
       int left = (o.width - imgW) / 2;
       int top = (o.height - imgH) / 2;
@@ -423,6 +440,15 @@ main(int argc, char **argv)
           continue;
         }
         if (load_image(Xtend, argv[i], alpha, image, outputs, noutputs) == 0) {
+          fprintf(stderr, "Bad image (%s)\n", argv[i]);
+          continue;
+        }
+      } else if (strcmp(argv[i], "-zoom") == 0) {
+        if ((++i) >= argc) {
+          fprintf(stderr, "Missing image\n");
+          continue;
+        }
+        if (load_image(Zoom, argv[i], alpha, image, outputs, noutputs) == 0) {
           fprintf(stderr, "Bad image (%s)\n", argv[i]);
           continue;
         }
