@@ -5,6 +5,7 @@ CFLAGS?=-g -O2 -Wall
 LDFLAGS?=
 
 PREFIX?=/usr/local
+DESTDIR?=
 
 # arch hardening
 #CPPFLAGS+=-D_FORTIFY_SOURCE=2
@@ -34,8 +35,8 @@ hsetroot: hsetroot.o
 hsr-outputs: hsr-outputs.o
 
 install: hsetroot hsr-outputs
-	install -st $(PREFIX)/bin/ hsetroot
-	install -st $(PREFIX)/bin/ hsr-outputs
+	install -st $(DESTDIR)$(PREFIX)/bin/ hsetroot
+	install -st $(DESTDIR)$(PREFIX)/bin/ hsr-outputs
 
 clean:
 	rm -f *.o hsetroot hsr-outputs
