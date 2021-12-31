@@ -35,8 +35,8 @@ hsetroot: hsetroot.o
 hsr-outputs: hsr-outputs.o
 
 install: hsetroot hsr-outputs
-	install -st $(DESTDIR)$(PREFIX)/bin/ hsetroot
-	install -st $(DESTDIR)$(PREFIX)/bin/ hsr-outputs
+	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsetroot
+	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsr-outputs
 
 clean:
 	rm -f *.o hsetroot hsr-outputs
