@@ -398,7 +398,10 @@ main(int argc, char **argv)
           fprintf (stderr, "Bad angle (%s)\n", argv[i]);
           continue;
         }
-        imlib_image_fill_color_range_rectangle(0, 0, width, height, angle);
+        for (int j = 0 ; j < noutputs; j++) {
+          XineramaScreenInfo o = outputs[j];
+          imlib_image_fill_color_range_rectangle(o.x_org, o.y_org, o.width, o.height, angle);
+        }
       } else if (strcmp(argv[i], "-fill") == 0) {
         if ((++i) >= argc) {
           fprintf(stderr, "Missing image\n");
