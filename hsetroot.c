@@ -389,12 +389,12 @@ main(int argc, char **argv)
         imlib_context_set_color(c.r, c.g, c.b, c.a);
         imlib_add_color_to_color_range(distance);
       } else if (strcmp(argv[i], "-gradient") == 0) {
-        int angle;
+        double angle;
         if ((++i) >= argc) {
           fprintf(stderr, "Missing angle\n");
           continue;
         }
-        if (sscanf(argv[i], "%i", &angle) == 0) {
+        if (sscanf(argv[i], "%lf", &angle) == 0) {
           fprintf (stderr, "Bad angle (%s)\n", argv[i]);
           continue;
         }
