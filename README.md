@@ -15,3 +15,5 @@ This repo contains hsetroot 1.0.2 with the following changes:
    * **added output support for all modes**, using xinerama
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
+
+NOTE: When built with imlib2 < 1.12.6, some operations only work correctly when dealing with less than 4096 pixels. This is fixed in current imlib2.
