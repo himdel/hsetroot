@@ -438,6 +438,16 @@ for o in $(./hsetroot --help | sed -n 's/^ --\([a-z]*\).*/\1/p'); do
 done
 grep -Fq '\fB\-\-screen\fR' hsetroot.1 && ko "removed --screen still in hsetroot.1" || ok
 
+t "man page descriptions start with the --help text"
+# reworded or longer in the man page on purpose, or an alias sharing the entry
+reworded=" root screens output cover extend mod help version reverse grey "
+./hsetroot --help | sed -n 's/^ --\([a-z]*\) .*  \([A-Z].*\)/\1|\2/p' >"$T/help"
+while IFS='|' read -r o h; do
+  case "$reworded" in *" $o "*) continue;; esac
+  m=$(grep -A1 "^\\\\fB\\\\-\\\\-$o\\\\fR" hsetroot.1 | sed -n 2p | sed 's/\\-/-/g; s/\\f[BRI]//g')
+  case "$m" in "$h"*) ok;; *) ko "--$o: help '$h', man '$m'";; esac
+done <"$T/help"
+
 t "long options (#13)"
 screen 400x100
 for f in "--fill=$T/rb.png" "--fill $T/rb.png" "-fill $T/rb.png" "-fill=$T/rb.png"; do

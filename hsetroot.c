@@ -63,7 +63,7 @@ static const Option options[] = {
   {NULL, {NULL}, "Misc:"},
   {"alpha", {"<0-255>"}, "Adjust alpha level for colors and images"},
   {"write", {"<filename>"}, "Write current image to file"},
-  {"verbose", {NULL}, "Print which outputs images are drawn on"},
+  {"verbose", {NULL}, "Print which outputs were drawn on"},
   {"help", {NULL}, "Show this help (also -h)"},
   {"version", {NULL}, "Show version"},
 };
