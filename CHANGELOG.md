@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 ### Features
 
@@ -19,7 +19,7 @@
 - the `output NAME: size(..) pos(..)` lines are only printed with `--verbose`, and list each output drawn on once - by images, gradients, solids, bitmaps or manipulations - instead of once per image
 - `-screens 0` now errors instead of silently doing nothing; skip the invocation to keep the old no-op behavior
 - **upgrade note:** `-gradient` is drawn on each monitor separately, like images; add `-root` for the old single gradient across all monitors (#44)
-- **upgrade note:** with multiple X screens (`:0.0`, `:0.1`, zaphod-style setups - not multiple monitors), only the screen from `$DISPLAY` is drawn now, like other X tools do; before, hsetroot drew on all of them. Use `-screens 3` (bitmask) for the old behaviour, or run it once per screen (#24)
+- **upgrade note:** with multiple X screens (`:0.0`, `:0.1`, zaphod-style setups - not multiple monitors), only the screen from `$DISPLAY` is drawn now, like other X tools do; before, hsetroot drew on all of them. For the old behaviour, set a bit per screen with `-screens` (`3` for two screens, `7` for three, ...), or run it once per screen (#24)
 - `hsr-outputs` prints the monitor names instead of Xinerama screen numbers: csv `name,x,y,width,height`, json/text keys `name`, `x`, `y`, `width`, `height`
 - monitors come from XRandR (`xrandr --listmonitors`, including monitors defined with `xrandr --setmonitor`), with Xinerama and then the whole screen as fallbacks - new build dependency on libxrandr (Debian `libxrandr-dev`, Arch `libxrandr`)
 - when no monitor is active (all turned off or disabled), drawing an image or gradient is an error instead of a silently black background - use `-root` to draw on the whole screen (#41)

@@ -25,7 +25,7 @@ typedef struct {
 static const Option options[] = {
   {NULL, {NULL}, "Generic Options:"},
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
-  {"screens", {"<int>"}, "Set a screenmask to use (1 = screen 0, 2 = screen 1, 3 = both, ...)"},
+  {"screens", {"<int>"}, "X screen bitmask (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},
@@ -63,7 +63,7 @@ static const Option options[] = {
   {NULL, {NULL}, "Misc:"},
   {"alpha", {"<0-255>"}, "Adjust alpha level for colors and images"},
   {"write", {"<filename>"}, "Write current image to file"},
-  {"verbose", {NULL}, "Print which outputs images are drawn on"},
+  {"verbose", {NULL}, "Print which outputs were drawn on"},
   {"help", {NULL}, "Show this help (also -h)"},
   {"version", {NULL}, "Show version"},
 };
@@ -279,6 +279,7 @@ setRootAtoms(Pixmap pixmap)
     if (type == XA_PIXMAP) {
       XGetWindowProperty(display, RootWindow(display, screen), atom_eroot, 0L, 1L, False, AnyPropertyType, &type, &format, &length, &after, &data_eroot);
 
+      // only kill when both match - a setter's retained pixmap; _XROOTPMAP_ID alone may belong to a running desktop
       // the old owner may be gone already, when it also set another screen we just did
       if (data_root && data_eroot && type == XA_PIXMAP && *((Pixmap *) data_root) == *((Pixmap *) data_eroot)) {
         XSync(display, False);

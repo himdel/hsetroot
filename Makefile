@@ -4,7 +4,7 @@ PKG_CONFIG?=pkg-config
 CFLAGS?=-g -O2 -Wall
 LDFLAGS?=
 
-VERSION?=$(shell git describe --tags 2>/dev/null || echo 1.0.5)
+VERSION?=$(shell test -e .git && git describe --tags 2>/dev/null || echo 1.1.0)
 CPPFLAGS+=-DVERSION=\"$(VERSION)\"
 
 PREFIX?=/usr/local
