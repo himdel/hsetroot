@@ -17,7 +17,7 @@ hsetroot --fg gray20 --bg black --mod 16 16                 # xsetroot's grid
 hsetroot                                                    # just black
 ```
 
-Options are applied in order, each on top of what's drawn so far - manipulations like `--fliph` or `--blur` change what's already there, settings like `--alpha` or `--fg` affect what comes after. Every option works as `--name value`, `--name=value` or the old `-name value`.
+Options are applied in order, each on top of what's drawn so far - manipulations like `--fliph` or `--blur` change what's already there, settings like `--alpha` or `--fg` affect what comes after (hsetroot warns when nothing after a setting uses it). Every option works as `--name value`, `--name=value` or the old `-name value`.
 
 See `hsetroot --help` or `man hsetroot` for all of them:
 
