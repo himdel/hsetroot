@@ -24,7 +24,8 @@ typedef struct {
 static const Option options[] = {
   {NULL, {NULL}, "Generic Options:"},
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
-  {"screens", {"<int>"}, "Set a screenmask to use"},
+  {"screen", {"<int>"}, "Use this X screen instead of the one from $DISPLAY"},
+  {"screens", {"<int>"}, "Set a screenmask to use (1 = screen 0, 2 = screen 1, 3 = both, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},
@@ -101,7 +102,7 @@ usage(FILE *f, char *commandline)
 Display *display;
 int screen;
 int opt_root = false;
-unsigned long screen_mask = ~0;
+unsigned long screen_mask = 0;
 
 int
 valid_arg(const char *kind, const char *arg)
@@ -190,6 +191,13 @@ parse_args(int argc, char **argv, Op *ops)
       exit(0);
     } else if (!strcmp(name, "root")) {
       opt_root = true;
+    } else if (!strcmp(name, "screen")) {
+      long n = strtol(op.arg[0], NULL, 0);
+      screen_mask = (n >= 0 && n < 64) ? 1UL << n : 0;
+      if (!screen_mask) {
+        fprintf(stderr, "Bad screen (%s)\n", op.arg[0]);
+        exit(1);
+      }
     } else if (!strcmp(name, "screens")) {
       screen_mask = strtoul(op.arg[0], NULL, 0);
     } else {
@@ -417,6 +425,13 @@ main(int argc, char **argv)
   if (!display) {
     fprintf(stderr, "Cannot open X display!\n");
     exit(123);
+  }
+
+  if (!screen_mask)
+    screen_mask = 1UL << DefaultScreen(display);
+  if (!(screen_mask & ((1UL << ScreenCount(display)) - 1))) {
+    fprintf(stderr, "No such screen, there are %d\n", ScreenCount(display));
+    exit(1);
   }
 
   // check colors and load images before touching anything

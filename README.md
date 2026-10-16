@@ -12,7 +12,7 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * Fix a segmentation fault when no display is present.
      * Add the '-extend' option
      * Add the '-cover' option
-   * reintroduced the screen mask `-screens` option from earlier versions .. which is rather useless actually, as it deals with X screens, not xrandr outputs
+   * X screens (the `:0.1` part of `$DISPLAY`, not monitors - for those see `--output`): hsetroot draws on the screen from `$DISPLAY`, `--screen N` picks another one, `-screens <mask>` several (1 = screen 0, 2 = screen 1, 3 = both, ...)
    * **added output support for all modes** - images are drawn on each monitor, as listed by `xrandr --listmonitors` (so `xrandr --setmonitor` works too), falls back to Xinerama and then to the whole screen on servers without RandR 1.5
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
      * when no monitor is active (all turned off), drawing images is an error, `-root` still works
