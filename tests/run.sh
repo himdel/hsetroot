@@ -170,6 +170,18 @@ done
 run -addd red 20000 -addd blue 20000 -gradient 0
 is 2 2 255,0,0 4
 
+t "gradient per output, -root for one over all (#44)"
+screen 1000x500 500x500+0+0 500x500+500+0
+run -add red -add blue -gradient 90
+is 0 250 0,0,255 6
+is 499 250 255,0,0 6
+is 500 250 0,0,255 6
+is 999 250 255,0,0 6
+run -root -add red -add blue -gradient 90
+is 0 250 0,0,255 6
+is 500 250 128,0,128 6
+is 999 250 255,0,0 6
+
 t "fractional gradient angle (#45)"
 screen 1000x500
 run -add red -add blue -gradient 45.5

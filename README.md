@@ -15,6 +15,7 @@ This repo contains hsetroot 1.0.2 with the following changes:
    * X screens (the `:0.1` part of `$DISPLAY`, not monitors - for those see `--output`): hsetroot draws on the screen from `$DISPLAY`; use `DISPLAY=:0.1` for screen 1 or `-screens <mask>` for several (1 = screen 0, 2 = screen 1, 3 = both; 0 is an error)
    * **added output support for all modes** - images are drawn on each monitor, as listed by `xrandr --listmonitors` (so `xrandr --setmonitor` works too), falls back to Xinerama and then to the whole screen on servers without RandR 1.5
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
+     * gradients are drawn per monitor too, `-root` for one gradient over all of them
      * when no monitor is active (all turned off), drawing images is an error, `-root` still works
    * `--output NAME` scopes drawing and manipulations to that monitor, `--output all` goes back to all of them - e.g. `hsetroot --output eDP-1 --cover laptop.jpg --output HDMI-1 --cover tv.jpg`
      * settings like `-alpha` and colors added with `-add` carry over to the next `--output`; use `-clear` before adding colors for a new gradient
