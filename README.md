@@ -21,6 +21,8 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * settings like `-alpha` and colors added with `-add` carry over to the next `--output`; use `-clear` before adding colors for a new gradient
    * `hsr-outputs` lists the monitors hsetroot sees, with their names (`--csv`, `--json`)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
+   * xsetroot-style bitmap backgrounds: `-bitmap file.xbm`, `-mod x y`, `-gray`, with `-fg`, `-bg` and `-rv` colors - same pixels as xsetroot, but like everything in hsetroot the colors have to come before the bitmap (`hsetroot -fg red -bg blue -mod 16 16`), so they can differ per `--output`
+     * `-mod 3 5` draws foreground vertical lines 3 pixels apart and horizontal lines 5 pixels apart; the gaps use the background color. The pattern repeats every 16 pixels: 0 fills that direction, and values above 16 give one line per tile.
    * modern `--long` options (`--fill image.jpg`, `--fill=image.jpg`), the old `-fill image.jpg` form still works
    * `-h`/`--help` and `--version`
    * any error (bad image, bad color, unknown option, or an unknown output on another X screen) exits with 1 before touching the background; failed `-write` reports the imlib2 error
