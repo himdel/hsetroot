@@ -25,6 +25,7 @@ static const Option options[] = {
   {NULL, {NULL}, "Generic Options:"},
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
   {"screens", {"<int>"}, "Set a screenmask to use"},
+  {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},
   {"addd", {"<color>", "<distance>"}, "Add color to range using custom distance"},
@@ -368,6 +369,25 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
   imlib_context_set_image(rootimg);
 }
 
+Output *
+find_output(Output *outputs, int noutputs, const char *name)
+{
+  for (int i = 0; i < noutputs; i++)
+    if (!strcmp(outputs[i].name, name))
+      return &outputs[i];
+  return NULL;
+}
+
+void
+apply_color_modifier(Output *target)
+{
+  if (target)
+    imlib_apply_color_modifier_to_rectangle(target->x, target->y, target->width, target->height);
+  else
+    imlib_apply_color_modifier();
+  imlib_free_color_modifier();
+}
+
 int
 main(int argc, char **argv)
 {
@@ -419,9 +439,15 @@ main(int argc, char **argv)
     scale = 1;
 
   bool need_outputs = false;
-  for (int i = 0; i < nops; i++)
+  for (int i = 0; i < nops; i++) {
     if (ops[i].image)
       need_outputs = true;
+
+    if (opt_root && !strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all")) {
+      fprintf(stderr, "Can't use --output %s with -root\n", ops[i].arg[0]);
+      exit(1);
+    }
+  }
 
   for (/* global */ screen = 0; screen < ScreenCount(display); screen++) {
     if ((screen_mask & (1UL << screen)) == 0)
@@ -446,6 +472,13 @@ main(int argc, char **argv)
       exit(1);
     }
 
+    for (int i = 0; i < nops; i++) {
+      if (!strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all") && !find_output(outputs, noutputs, ops[i].arg[0])) {
+        fprintf(stderr, "Unknown output (%s), see hsr-outputs\n", ops[i].arg[0]);
+        exit(1);
+      }
+    }
+
     pixmap = XCreatePixmap(display, RootWindow(display, screen), width, height, depth);
 
     imlib_context_set_visual(vis);
@@ -463,25 +496,32 @@ main(int argc, char **argv)
     imlib_context_set_blend(1);
 
     alpha = 255;
+    Output *target = NULL;
 
     for (int i = 0; i < nops; i++) {
       Op *op = &ops[i];
       const char *name = op->opt->name;
+      Output *area = target ? target : &root;
       Color c;
 
-      if (modifier != NULL) {
-        imlib_apply_color_modifier();
-        imlib_free_color_modifier();
-      }
+      if (modifier != NULL)
+        apply_color_modifier(target);
       modifier = imlib_create_color_modifier();
       imlib_context_set_color_modifier(modifier);
 
-      if (!strcmp(name, "alpha")) {
+      // these work on the whole image, give them just the target output's part
+      bool crop = target && (!strcmp(name, "blur") || !strcmp(name, "sharpen") || !strncmp(name, "flip", 4));
+      if (crop)
+        imlib_context_set_image(imlib_create_cropped_image(target->x, target->y, target->width, target->height));
+
+      if (!strcmp(name, "output")) {
+        target = find_output(outputs, noutputs, op->arg[0]);
+      } else if (!strcmp(name, "alpha")) {
         alpha = strtol(op->arg[0], NULL, 0);
       } else if (!strcmp(name, "solid")) {
         parse_color(op->arg[0], &c, alpha);
         imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_image_fill_rectangle(0, 0, width, height);
+        imlib_image_fill_rectangle(area->x, area->y, area->width, area->height);
       } else if (!strcmp(name, "clear")) {
         imlib_free_color_range();
         imlib_context_set_color_range(imlib_create_color_range());
@@ -490,7 +530,7 @@ main(int argc, char **argv)
         imlib_context_set_color(c.r, c.g, c.b, c.a);
         imlib_add_color_to_color_range(scale * (op->arg[1] ? strtol(op->arg[1], NULL, 0) : 1));
       } else if (!strcmp(name, "gradient")) {
-        imlib_image_fill_color_range_rectangle(0, 0, width, height, strtod(op->arg[0], NULL));
+        imlib_image_fill_color_range_rectangle(area->x, area->y, area->width, area->height, strtod(op->arg[0], NULL));
       } else if (op->image) {
         ImageMode mode = !strcmp(name, "fill") ? Fill
                        : !strcmp(name, "full") ? Full
@@ -498,7 +538,7 @@ main(int argc, char **argv)
                        : !strcmp(name, "tile") ? Tile
                        : !strcmp(name, "center") ? Center
                        : Cover;
-        draw_image(mode, op->image, alpha, image, outputs, noutputs);
+        draw_image(mode, op->image, alpha, image, target ? target : outputs, target ? 1 : noutputs);
       } else if (!strcmp(name, "tint")) {
         DATA8 r[256], g[256], b[256], a[256];
 
@@ -536,12 +576,24 @@ main(int argc, char **argv)
           exit(1);
         }
       }
+
+      if (crop) {
+        Imlib_Image part = imlib_context_get_image();
+        int w = imlib_image_get_width(), h = imlib_image_get_height();
+
+        imlib_context_set_image(image);
+        imlib_context_set_blend(0);
+        imlib_blend_image_onto_image(part, 1, 0, 0, w, h, target->x, target->y, target->width, target->height);
+        imlib_context_set_blend(1);
+        imlib_context_set_image(part);
+        imlib_free_image();
+        imlib_context_set_image(image);
+      }
     }
 
     if (modifier != NULL) {
       imlib_context_set_color_modifier(modifier);
-      imlib_apply_color_modifier();
-      imlib_free_color_modifier();
+      apply_color_modifier(target);
       modifier = NULL;
     }
 

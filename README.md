@@ -16,6 +16,7 @@ This repo contains hsetroot 1.0.2 with the following changes:
    * **added output support for all modes** - images are drawn on each monitor, as listed by `xrandr --listmonitors` (so `xrandr --setmonitor` works too), falls back to Xinerama and then to the whole screen on servers without RandR 1.5
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
      * when no monitor is active (all turned off), drawing images is an error, `-root` still works
+   * `--output NAME` makes everything after it (images, `-solid`, `-gradient`, manipulations) apply to just that monitor, `--output all` goes back to all of them - e.g. `hsetroot --output eDP-1 --cover laptop.jpg --output HDMI-1 --cover tv.jpg`
    * `hsr-outputs` lists the monitors hsetroot sees, with their names (`--csv`, `--json`)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
    * modern `--long` options (`--fill image.jpg`, `--fill=image.jpg`), the old `-fill image.jpg` form still works
