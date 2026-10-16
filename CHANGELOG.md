@@ -24,6 +24,7 @@
 
 - `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
 - malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
+- drawing on more than one X screen crashed with an X error (`BadMatch` in `X_ShmPutImage`, or `BadValue` in `X_KillClient`)
 - gradients on screens over 4096px came out as a solid color even with imlib2 1.12.6, hsetroot now scales the color distances to avoid the imlib2 bug; gradients also reach their end colors exactly now (#28, #42, #43)
 - `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)
 - with multiple monitors, `-solid`, `-gradient` and manipulations after an image only affected the last monitor

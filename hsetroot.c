@@ -200,6 +200,12 @@ parse_args(int argc, char **argv, Op *ops)
   return nops;
 }
 
+int
+ignore_errors(Display *display, XErrorEvent *event)
+{
+  return 0;
+}
+
 // Adapted from fluxbox' bsetroot
 int
 setRootAtoms(Pixmap pixmap)
@@ -219,8 +225,14 @@ setRootAtoms(Pixmap pixmap)
     if (type == XA_PIXMAP) {
       XGetWindowProperty(display, RootWindow(display, screen), atom_eroot, 0L, 1L, False, AnyPropertyType, &type, &format, &length, &after, &data_eroot);
 
-      if (data_root && data_eroot && type == XA_PIXMAP && *((Pixmap *) data_root) == *((Pixmap *) data_eroot))
+      // the old owner may be gone already, when it also set another screen we just did
+      if (data_root && data_eroot && type == XA_PIXMAP && *((Pixmap *) data_root) == *((Pixmap *) data_eroot)) {
+        XSync(display, False);
+        XErrorHandler handler = XSetErrorHandler(ignore_errors);
         XKillClient(display, *((Pixmap *) data_root));
+        XSync(display, False);
+        XSetErrorHandler(handler);
+      }
     }
   }
 
@@ -613,6 +625,8 @@ main(int argc, char **argv)
     XFlush(display);
     XSync(display, False);
 
+    // drop imlib's cached XImages and GCs, they don't work on another screen's root
+    imlib_context_disconnect_display();
     imlib_context_pop();
     imlib_context_free(context);
 

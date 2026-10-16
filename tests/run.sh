@@ -226,6 +226,18 @@ rc_is 1
 run -root --output all -solid green
 rc_is 0
 
+t "drawing on two X screens"
+XARGS="-screen 1 200x100x24" screen 400x100
+XARGS=
+D=$DISPLAY
+DISPLAY=$D ./hsetroot -solid red
+DISPLAY=$D ./hsetroot -screens 3 -solid white
+rc=$?
+rc_is 0
+for n in 0 1; do
+  import -display "$D.$n" -window root "$T/root.png"
+  is 10 10 255,255,255
+done
 t "hsr-outputs --help"
 DISPLAY= ./hsr-outputs --help | grep -q Syntax && ok || ko "no help"
 ./hsr-outputs --bogus 2>/dev/null
