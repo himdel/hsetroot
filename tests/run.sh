@@ -324,7 +324,7 @@ is 150 10 255,0,0
 is 250 10 0,0,255
 XARGS=
 
-t "no outputs (all turned off, #41) is an error for images, -root still works"
+t "no outputs (all turned off, #41) is an error for images and gradients, -root still works"
 screen 400x100
 xrandr --output screen --off 2>/dev/null
 run -solid red
@@ -333,10 +333,18 @@ run -solid blue -fill "$T/rb.png"
 rc_is 1
 grep -q -- -root "$T/out" && ok || ko "no -root hint: $(cat "$T/out")"
 is 10 10 255,0,0
+run -add red -add blue -gradient 90
+rc_is 1
+grep -q -- -root "$T/out" && ok || ko "no -root hint for gradient: $(cat "$T/out")"
+is 10 10 255,0,0
 run -root -fill "$T/rb.png"
 rc_is 0
 is 10 10 255,0,0
 is 250 10 0,0,255
+run -root -add red -add blue -gradient 90
+rc_is 0
+is 0 50 0,0,255 6
+is 399 50 255,0,0 6
 
 t "-write"
 run -solid red -write "$T/w.png"
