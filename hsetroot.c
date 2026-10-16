@@ -341,7 +341,7 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.width, o.height);
     } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
       double aspect = ((double) o.width) / imgW;
-      if (((int) (imgH * aspect) > o.height) != /*xor*/ (mode == Cover))
+      if ((imgH * aspect > o.height) != /*xor*/ (mode == Cover))
         aspect = (double) o.height / (double) imgH;
 
       // rounded, truncating could leave a 1px gap

@@ -143,6 +143,13 @@ run -cover "$T/odd.png"
 is 999 500 255,0,0
 is 0 500 255,0,0
 
+t "-cover chooses the covering axis before rounding"
+screen 1000x100
+convert -size 2000x201 xc:red "$T/near-edge.png"
+run -cover "$T/near-edge.png"
+is 0 50 255,0,0
+is 999 50 255,0,0
+
 t "-center doesn't bleed into other monitors (#18, #30)"
 screen 2000x500 1000x500+0+0 1000x500+1000+0
 run -center "$T/rb-big.png"

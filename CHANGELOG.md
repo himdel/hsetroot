@@ -30,7 +30,7 @@
 - an unknown `--output` on a later X screen no longer changes the wallpaper on earlier screens before failing
 - `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
 - malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
-- `-cover`, `-full` and `-extend` could leave a 1px black line on one edge for some image sizes
+- `-cover`, `-full` and `-extend` could leave black gaps at an edge for some image sizes
 - drawing on more than one X screen crashed with an X error (`BadMatch` in `X_ShmPutImage`, or `BadValue` in `X_KillClient`)
 - gradients on screens over 4096px came out as a solid color even with imlib2 1.12.6, hsetroot now scales the color distances to avoid the imlib2 bug; gradients also reach their end colors exactly now (#28, #42, #43)
 - `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)
