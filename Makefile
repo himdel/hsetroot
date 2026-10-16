@@ -32,17 +32,20 @@ LDLIBS+=$(shell $(PKG_CONFIG) imlib2 --libs)
 CFLAGS+=$(shell $(PKG_CONFIG) xinerama --cflags)
 LDLIBS+=$(shell $(PKG_CONFIG) xinerama --libs)
 
+CFLAGS+=$(shell $(PKG_CONFIG) xrandr --cflags)
+LDLIBS+=$(shell $(PKG_CONFIG) xrandr --libs)
+
 all: hsetroot hsr-outputs
 
-hsetroot: hsetroot.o
+hsetroot: hsetroot.o outputs.o
 
-hsr-outputs: hsr-outputs.o
+hsr-outputs: hsr-outputs.o outputs.o
 
 install: hsetroot hsr-outputs
 	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsetroot
 	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsr-outputs
 
-check: hsetroot
+check: hsetroot hsr-outputs
 	sh tests/run.sh
 
 clean:

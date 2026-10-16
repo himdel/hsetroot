@@ -4,11 +4,15 @@
 
 ### Features
 
+- `hsr-outputs --help`, unknown options are an error now
 - `--long` options: `--fill image.jpg` and `--fill=image.jpg`, the old `-fill image.jpg` keeps working (#13)
 - `-h`/`--help` and `--version`, these no longer need an X display
 
 ### Changes
 
+- `hsr-outputs` prints the monitor names instead of Xinerama screen numbers: csv `name,x,y,width,height`, json/text keys `name`, `x`, `y`, `width`, `height`
+- monitors come from XRandR (`xrandr --listmonitors`, including monitors defined with `xrandr --setmonitor`), with Xinerama and then the whole screen as fallbacks - new build dependency on libxrandr (Debian `libxrandr-dev`, Arch `libxrandr`)
+- when no monitor is active (all turned off or disabled), drawing an image is an error instead of a silently black background - use `-root` to draw on the whole screen (#41)
 - any error (bad image, bad color, bad number, missing argument, unknown option, failed `-write`) now exits with 1 and leaves the background untouched, previously hsetroot carried on and exited 0 (#6)
 - numeric arguments are checked strictly (`-blur 3px`, negative or out-of-range radii and screen masks, non-finite values, and `-alpha 300` are errors now)
 - images are loaded once, not once per X screen

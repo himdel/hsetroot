@@ -12,10 +12,10 @@ stop() {
   XPID=
 }
 
-# screen WxH [WxH+X+Y..] - fresh Xvfb, optionally split into monitors
+# screen WxH [WxH+X+Y..] - fresh Xvfb, optionally split into monitors, extra Xvfb args in $XARGS
 screen() {
   stop
-  Xvfb -displayfd 3 -noreset -screen 0 "$1"x24 3>"$T/fd" >/dev/null 2>&1 &
+  Xvfb -displayfd 3 -noreset -screen 0 "$1"x24 $XARGS 3>"$T/fd" >/dev/null 2>&1 &
   XPID=$!
   while [ ! -s "$T/fd" ]; do sleep 0.1; done
   DISPLAY=:$(cat "$T/fd")
@@ -172,6 +172,46 @@ t "fractional gradient angle (#45)"
 screen 1000x500
 run -add red -add blue -gradient 45.5
 rc_is 0
+
+t "hsr-outputs lists RandR monitors by name"
+screen 1000x500 500x500+0+0 500x500+500+0
+[ "$(./hsr-outputs --csv | tr '\n' ' ')" = "name,x,y,width,height m500x500+0+0,0,0,500,500 m500x500+500+0,500,0,500,500 " ] && ok || ko "$(./hsr-outputs --csv)"
+
+t "hsr-outputs --help"
+DISPLAY= ./hsr-outputs --help | grep -q Syntax && ok || ko "no help"
+./hsr-outputs --bogus 2>/dev/null
+[ $? = 1 ] && ok || ko "bad option doesn't exit 1"
+[ "$(./hsr-outputs --text)" = "$(./hsr-outputs)" ] && ok || ko "--text differs"
+
+t "Xinerama fallback without RandR"
+XARGS="-extension RANDR +xinerama -screen 1 200x100x24" screen 400x100
+run -fill "$T/rb.png"
+# both heads are at 0,0 in Xvfb, the smaller one wins on its first 200px
+is 50 10 255,0,0
+is 150 10 0,0,255
+is 250 10 0,0,255
+XARGS=
+
+t "whole screen without RandR and Xinerama"
+XARGS="-extension RANDR" screen 400x100
+run -fill "$T/rb.png"
+is 150 10 255,0,0
+is 250 10 0,0,255
+XARGS=
+
+t "no outputs (all turned off, #41) is an error for images, -root still works"
+screen 400x100
+xrandr --output screen --off 2>/dev/null
+run -solid red
+rc_is 0
+run -solid blue -fill "$T/rb.png"
+rc_is 1
+grep -q -- -root "$T/out" && ok || ko "no -root hint: $(cat "$T/out")"
+is 10 10 255,0,0
+run -root -fill "$T/rb.png"
+rc_is 0
+is 10 10 255,0,0
+is 250 10 0,0,255
 
 t "-write"
 run -solid red -write "$T/w.png"
