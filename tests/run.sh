@@ -156,6 +156,45 @@ t "-write"
 run -solid red -write "$T/w.png"
 [ -s "$T/w.png" ] && ok || ko "no file written"
 
+t "--help and --version work without a display"
+DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
+
+t "long options (#13)"
+screen 400x100
+for f in "--fill=$T/rb.png" "--fill $T/rb.png" "-fill $T/rb.png" "-fill=$T/rb.png"; do
+  run -solid green $f
+  is 10 10 255,0,0
+  is 300 10 0,0,255
+done
+
+t "errors exit 1, root untouched (#6)"
+for args in "-fill /nonexistent" "-solid nosuchcolor" "-solid" "-addd red" "-blur 3px" "-blur ''" "-blur -1" "-blur 2147483648" "-addd red 2147483648" "-screens -1" "-screens 18446744073709551616" "-alpha 300" "-gradient x" "-gradient nan" "-contrast inf" "-bogus" "foo" "-flipv=1" "-solid #ff0000zz" "-solid #ff0000fZ"; do
+  run -solid red
+  eval run -solid blue $args
+  rc_is 1
+  is 10 10 255,0,0
+done
+
+t "-write failure exits 1"
+run -solid red -write /nonexistent/x.png
+rc_is 1
+
+t "-write reports unsupported formats"
+run -solid red -write "$T/w.unknownformat"
+rc_is 1
+grep -q 'No saver' "$T/out" && ok || ko "write error: $(cat "$T/out")"
+
+t "manipulations after an image apply to the whole root (cliprect reset)"
+screen 1000x500 500x500+0+0 500x500+500+0
+run -center "$T/rb.png" -solid red
+is 10 10 255,0,0
+is 990 10 255,0,0
+
+t "-alpha with images keeps later color modifiers working"
+run -solid white -alpha 128 -contrast 2 -fill "$T/rb.png" -brightness -0.5 -solid green
+is 10 10 64,128,0
+grep -q Warning "$T/out" && ko "imlib warning: $(cat "$T/out")" || ok
+
 
 echo "$pass passed, $fail failed"
 [ $fail = 0 ]

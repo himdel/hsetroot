@@ -16,5 +16,9 @@ This repo contains hsetroot 1.0.2 with the following changes:
    * **added output support for all modes**, using xinerama
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
+   * modern `--long` options (`--fill image.jpg`, `--fill=image.jpg`), the old `-fill image.jpg` form still works
+   * `-h`/`--help` and `--version`
+   * any error (bad image, bad color, unknown option, ...) exits with 1 before touching the background; failed `-write` reports the imlib2 error
+   * numeric arguments reject out-of-range values, negative blur/sharpen radii and screen masks, and non-finite angles/amounts
 
 NOTE: imlib2 < 1.12.6 renders gradients wrong when the screen is larger than 4096 pixels in either dimension (and on some 4K setups), so the Makefile refuses older versions. Use `make IMLIB2_MIN=0` to build anyway.
