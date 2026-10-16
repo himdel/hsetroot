@@ -45,7 +45,7 @@ install: hsetroot hsr-outputs
 	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsetroot
 	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsr-outputs
 
-check: hsetroot
+check: hsetroot hsr-outputs
 	sh tests/run.sh
 
 clean:
