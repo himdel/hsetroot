@@ -177,6 +177,12 @@ t "hsr-outputs lists RandR monitors by name"
 screen 1000x500 500x500+0+0 500x500+500+0
 [ "$(./hsr-outputs --csv | tr '\n' ' ')" = "name,x,y,width,height m500x500+0+0,0,0,500,500 m500x500+500+0,500,0,500,500 " ] && ok || ko "$(./hsr-outputs --csv)"
 
+t "hsr-outputs --help"
+DISPLAY= ./hsr-outputs --help | grep -q Syntax && ok || ko "no help"
+./hsr-outputs --bogus 2>/dev/null
+[ $? = 1 ] && ok || ko "bad option doesn't exit 1"
+[ "$(./hsr-outputs --text)" = "$(./hsr-outputs)" ] && ok || ko "--text differs"
+
 t "Xinerama fallback without RandR"
 XARGS="-extension RANDR +xinerama -screen 1 200x100x24" screen 400x100
 run -fill "$T/rb.png"

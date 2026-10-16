@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,15 @@ enum Format { TEXT, CSV, JSON };
 int
 main(int argc, char **argv)
 {
+	if (argc > 2 || (argc == 2 && strcmp(argv[1], "--text") && strcmp(argv[1], "--csv") && strcmp(argv[1], "--json"))) {
+		bool help = !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help");
+		fprintf(help ? stdout : stderr,
+			"hsr-outputs - list the monitors hsetroot draws on, names work with hsetroot --output\n"
+			"\n"
+			"Syntax: %s [--text|--csv|--json]\n", argv[0]);
+		exit(help ? 0 : 1);
+	}
+
 	Display *display = XOpenDisplay(NULL);
 	if (! display) {
 		fprintf(stderr, "Cannot open X display!\n");

@@ -4,6 +4,7 @@
 
 ### Features
 
+- `hsr-outputs --help`, unknown options are an error now
 - `--long` options: `--fill image.jpg` and `--fill=image.jpg`, the old `-fill image.jpg` keeps working (#13)
 - `-h`/`--help` and `--version`, these no longer need an X display
 
