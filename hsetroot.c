@@ -463,7 +463,7 @@ main(int argc, char **argv)
 
   bool need_outputs = false;
   for (int i = 0; i < nops; i++) {
-    if (ops[i].image)
+    if (ops[i].image || !strcmp(ops[i].opt->name, "gradient"))
       need_outputs = true;
 
     if (opt_root && !strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all")) {
@@ -574,7 +574,10 @@ main(int argc, char **argv)
         imlib_context_set_color(c.r, c.g, c.b, c.a);
         imlib_add_color_to_color_range(scale * (op->arg[1] ? strtol(op->arg[1], NULL, 0) : 1));
       } else if (!strcmp(name, "gradient")) {
-        imlib_image_fill_color_range_rectangle(area->x, area->y, area->width, area->height, strtod(op->arg[0], NULL));
+        for (int j = 0; j < (target ? 1 : noutputs); j++) {
+          Output *o = target ? target : &outputs[j];
+          imlib_image_fill_color_range_rectangle(o->x, o->y, o->width, o->height, strtod(op->arg[0], NULL));
+        }
       } else if (op->image) {
         ImageMode mode = !strcmp(name, "fill") ? Fill
                        : !strcmp(name, "full") ? Full
