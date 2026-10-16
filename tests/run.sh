@@ -209,6 +209,13 @@ is 10 10 0,0,0
 is 501 250 0,0,255 6
 is 998 250 255,0,0 6
 
+t "-clear starts a new gradient on the next output"
+run --output m0 -add red -add blue -gradient 90 -clear --output m1 -add green -add yellow -gradient 90
+is 1 250 0,0,255 6
+is 498 250 255,0,0 6
+is 501 250 255,255,0 6
+is 998 250 0,255,0 6
+
 t "--output errors"
 run -solid red
 run -solid blue --output nosuch -solid green
