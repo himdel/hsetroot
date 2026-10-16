@@ -279,6 +279,7 @@ setRootAtoms(Pixmap pixmap)
     if (type == XA_PIXMAP) {
       XGetWindowProperty(display, RootWindow(display, screen), atom_eroot, 0L, 1L, False, AnyPropertyType, &type, &format, &length, &after, &data_eroot);
 
+      // only kill when both match - a setter's retained pixmap; _XROOTPMAP_ID alone may belong to a running desktop
       // the old owner may be gone already, when it also set another screen we just did
       if (data_root && data_eroot && type == XA_PIXMAP && *((Pixmap *) data_root) == *((Pixmap *) data_eroot)) {
         XSync(display, False);
