@@ -1,0 +1,17 @@
+name: check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # imlib2 >= 1.12.6, ubuntu has an older one
+    container: debian:testing
+    steps:
+      - uses: actions/checkout@v5
+      - run: apt-get update && apt-get install -y --no-install-recommends build-essential pkg-config libimlib2-dev libx11-dev libxinerama-dev libxrandr-dev xvfb x11-xserver-utils x11-utils imagemagick
+      - run: make
+      - run: make check
