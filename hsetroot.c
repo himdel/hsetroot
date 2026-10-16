@@ -70,6 +70,14 @@ static const Option options[] = {
 
 #define NOPTIONS (sizeof(options) / sizeof(*options))
 
+// settings, and what uses them - to warn when nothing after a setting does
+static const char *uses[][2] = {
+  {"fg bg rv reverse", "bitmap mod gray grey"},
+  {"alpha", "solid add addd center cover tile full extend fill bitmap mod gray grey"},
+  {"add addd", "gradient"},
+  {"output", "solid gradient center cover tile full extend fill bitmap mod gray grey tint blur sharpen contrast brightness gamma flipv fliph flipd"},
+};
+
 // one parsed command line option, in order
 typedef struct {
   const Option *opt;
@@ -146,6 +154,17 @@ valid_arg(const char *kind, const char *arg)
   return *arg && !*end && errno != ERANGE;
 }
 
+bool
+in_list(const char *list, const char *name)
+{
+  size_t n = strlen(name);
+
+  for (const char *p = list; (p = strstr(p, name)); p += n)
+    if ((p == list || p[-1] == ' ') && (p[n] == ' ' || !p[n]))
+      return true;
+  return false;
+}
+
 // argv -> ops, handles global options, exits on errors
 int
 parse_args(int argc, char **argv, Op *ops)
@@ -214,6 +233,19 @@ parse_args(int argc, char **argv, Op *ops)
       }
     } else {
       ops[nops++] = op;
+    }
+  }
+
+  for (int i = 0; i < nops; i++) {
+    for (size_t k = 0; k < sizeof(uses) / sizeof(*uses); k++) {
+      bool used = false;
+
+      if (!in_list(uses[k][0], ops[i].opt->name))
+        continue;
+      for (int j = i + 1; j < nops && !used; j++)
+        used = in_list(uses[k][1], ops[j].opt->name);
+      if (!used)
+        fprintf(stderr, "Warning: --%s has no effect, nothing after it uses it\n", ops[i].opt->name);
     }
   }
 

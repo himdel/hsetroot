@@ -405,6 +405,17 @@ run -fill "$T/rb.png"
 run --verbose -fill "$T/rb.png"
 grep -q "^output screen: size(400, 100) pos(0, 0)" "$T/out" && ok || ko "no --verbose output: $(cat "$T/out")"
 
+t "warnings for settings nothing uses"
+for args in "-gray -fg red" "-mod 2 2 -rv" "-solid red -alpha 128" "-add red -add blue" "-solid red --output screen"; do
+  run $args
+  rc_is 0
+  grep -q "Warning: --.* has no effect" "$T/out" && ok || ko "no warning for $args"
+done
+for args in "-fg red -gray" "-alpha 128 -solid red" "-add red -add blue -gradient 0" "--output screen -solid red" "-solid red"; do
+  run $args
+  [ -s "$T/out" ] && ko "unexpected output for $args: $(cat "$T/out")" || ok
+done
+
 t "--help and --version work without a display"
 DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
 
