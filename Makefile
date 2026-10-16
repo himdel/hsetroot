@@ -44,6 +44,7 @@ hsr-outputs: hsr-outputs.o outputs.o
 install: hsetroot hsr-outputs
 	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsetroot
 	install -Dst $(DESTDIR)$(PREFIX)/bin/ hsr-outputs
+	install -Dm644 -t $(DESTDIR)$(PREFIX)/share/man/man1/ hsetroot.1
 
 check: hsetroot hsr-outputs
 	sh tests/run.sh

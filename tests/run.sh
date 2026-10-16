@@ -394,6 +394,11 @@ run -solid red -write "$T/w.png"
 t "--help and --version work without a display"
 DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
 
+t "man page lists every option"
+for o in $(./hsetroot --help | sed -n 's/^ --\([a-z]*\).*/\1/p'); do
+  grep -q "fB\\\\-\\\\-$o\\\\fR" hsetroot.1 && ok || ko "--$o missing in hsetroot.1"
+done
+
 t "long options (#13)"
 screen 400x100
 for f in "--fill=$T/rb.png" "--fill $T/rb.png" "-fill $T/rb.png" "-fill=$T/rb.png"; do
