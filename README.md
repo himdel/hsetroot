@@ -2,7 +2,7 @@ hsetroot - imlib2-based wallpaper changer
 
 original author: `Hyriand <hyriand@thegraveyard.org>` (2003)  
 licence: GPL2  
-needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, pkg-config, make  
+needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, libxrandr-dev, pkg-config, make  
 `make check` runs the tests in Xvfb, needs xvfb, x11-xserver-utils (xrandr), x11-utils (xprop), imagemagick
 
 This repo contains hsetroot 1.0.2 with the following changes:
@@ -13,8 +13,10 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * Add the '-extend' option
      * Add the '-cover' option
    * reintroduced the screen mask `-screens` option from earlier versions .. which is rather useless actually, as it deals with X screens, not xrandr outputs
-   * **added output support for all modes**, using xinerama
+   * **added output support for all modes** - images are drawn on each monitor, as listed by `xrandr --listmonitors` (so `xrandr --setmonitor` works too), falls back to Xinerama and then to the whole screen on servers without RandR 1.5
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
+     * when no monitor is active (all turned off), drawing images is an error, `-root` still works
+   * `hsr-outputs` lists the monitors hsetroot sees, with their names (`--csv`, `--json`)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
    * modern `--long` options (`--fill image.jpg`, `--fill=image.jpg`), the old `-fill image.jpg` form still works
    * `-h`/`--help` and `--version`

@@ -1,6 +1,5 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#include <X11/extensions/Xinerama.h>
 #include <Imlib2.h>
 #include <ctype.h>
 #include <errno.h>
@@ -10,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "outputs.h"
 
 
 typedef enum { Full, Fill, Center, Tile, Xtend, Cover } ImageMode;
@@ -272,7 +272,7 @@ parse_color(const char *arg, Color *c, int default_alpha)
 }
 
 void
-draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, XineramaScreenInfo *outputs, int noutputs)
+draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Output *outputs, int noutputs)
 {
   int imgW, imgH, o;
   Imlib_Image buffer = image;
@@ -304,12 +304,12 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
   imlib_context_set_image(rootimg);
 
   for (int i = 0; i < noutputs; i++) {
-    XineramaScreenInfo o = outputs[i];
-    printf("output %d: size(%d, %d) pos(%d, %d)\n", i, o.width, o.height, o.x_org, o.y_org);
-    imlib_context_set_cliprect(o.x_org, o.y_org, o.width, o.height);
+    Output o = outputs[i];
+    printf("output %s: size(%d, %d) pos(%d, %d)\n", o.name, o.width, o.height, o.x, o.y);
+    imlib_context_set_cliprect(o.x, o.y, o.width, o.height);
 
     if (mode == Fill) {
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org, o.y_org, o.width, o.height);
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.width, o.height);
     } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
       double aspect = ((double) o.width) / imgW;
       if (((int) (imgH * aspect) > o.height) != /*xor*/ (mode == Cover))
@@ -318,7 +318,7 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
       int top = (o.height - (int) (imgH * aspect)) / 2;
       int left = (o.width - (int) (imgW * aspect)) / 2;
 
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, (int) (imgW * aspect), (int) (imgH * aspect));
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, (int) (imgW * aspect), (int) (imgH * aspect));
 
       if (mode == Xtend) {
         int w;
@@ -327,16 +327,16 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
           int right = left - 1 + (int) (imgW * aspect);
           /* check only the right border - left is int divided so the right border is larger */
           for (w = 1; right + w < o.width; w <<= 1) {
-            imlib_image_copy_rect(o.x_org + left + 1 - w, o.y_org, w, o.height, o.x_org + left + 1 - w - w, o.y_org);
-            imlib_image_copy_rect(o.x_org + right, o.y_org, w, o.height, o.x_org + right + w, o.y_org);
+            imlib_image_copy_rect(o.x + left + 1 - w, o.y, w, o.height, o.x + left + 1 - w - w, o.y);
+            imlib_image_copy_rect(o.x + right, o.y, w, o.height, o.x + right + w, o.y);
           }
         }
 
         if (top > 0) {
           int bottom = top - 1 + (int) (imgH * aspect);
           for (w = 1; (bottom + w < o.height); w <<= 1) {
-            imlib_image_copy_rect(o.x_org, o.y_org + top + 1 - w, o.width, w, o.x_org, o.y_org + top + 1 - w - w);
-            imlib_image_copy_rect(o.x_org, o.y_org + bottom, o.width, w, o.x_org, o.y_org + bottom + w);
+            imlib_image_copy_rect(o.x, o.y + top + 1 - w, o.width, w, o.x, o.y + top + 1 - w - w);
+            imlib_image_copy_rect(o.x, o.y + bottom, o.width, w, o.x, o.y + bottom + w);
           }
         }
       }
@@ -351,9 +351,9 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
 
         for (x = left; x < o.width; x += imgW)
           for (y = top; y < o.height; y += imgH)
-            imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + x, o.y_org + y, imgW, imgH);
+            imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + x, o.y + y, imgW, imgH);
       } else {
-        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x_org + left, o.y_org + top, imgW, imgH);
+        imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, imgW, imgH);
       }
     }
   }
@@ -418,22 +418,10 @@ main(int argc, char **argv)
   if (scale < 1)
     scale = 1;
 
-  int noutputs = 0;
-  XineramaScreenInfo *outputs = NULL;
-
-  XineramaScreenInfo fake = {
-    .x_org = 0,
-    .y_org = 0,
-    .width = 0,
-    .height = 0,
-  };
-
-  if (opt_root) {
-    noutputs = 1;
-    outputs = &fake;
-  } else {
-    outputs = XineramaQueryScreens(display, &noutputs);
-  }
+  bool need_outputs = false;
+  for (int i = 0; i < nops; i++)
+    if (ops[i].image)
+      need_outputs = true;
 
   for (/* global */ screen = 0; screen < ScreenCount(display); screen++) {
     if ((screen_mask & (1UL << screen)) == 0)
@@ -449,9 +437,13 @@ main(int argc, char **argv)
     height = DisplayHeight(display, screen);
     depth = DefaultDepth(display, screen);
 
-    if (opt_root) {
-      outputs[0].width = width;
-      outputs[0].height = height;
+    int noutputs = 1;
+    Output root = { "root", 0, 0, width, height };
+    Output *outputs = opt_root ? &root : query_outputs(display, screen, &noutputs);
+
+    if (!noutputs && need_outputs) {
+      fprintf(stderr, "No outputs found (all turned off?), use -root to draw on the whole screen\n");
+      exit(1);
     }
 
     pixmap = XCreatePixmap(display, RootWindow(display, screen), width, height, depth);
@@ -571,15 +563,9 @@ main(int argc, char **argv)
 
     imlib_context_pop();
     imlib_context_free(context);
-  }
 
-  if (outputs != NULL) {
-    if (!opt_root) {
-      XFree(outputs);
-    }
-
-    outputs = NULL;
-    noutputs = 0;
+    if (!opt_root)
+      free(outputs);
   }
 
   return 0;

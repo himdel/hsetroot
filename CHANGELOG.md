@@ -9,6 +9,8 @@
 
 ### Changes
 
+- monitors come from XRandR (`xrandr --listmonitors`, including monitors defined with `xrandr --setmonitor`), with Xinerama and then the whole screen as fallbacks - new build dependency on libxrandr (Debian `libxrandr-dev`, Arch `libxrandr`)
+- when no monitor is active (all turned off or disabled), drawing an image is an error instead of a silently black background - use `-root` to draw on the whole screen (#41)
 - any error (bad image, bad color, bad number, missing argument, unknown option, failed `-write`) now exits with 1 and leaves the background untouched, previously hsetroot carried on and exited 0 (#6)
 - numeric arguments are checked strictly (`-blur 3px`, negative or out-of-range radii and screen masks, non-finite values, and `-alpha 300` are errors now)
 - images are loaded once, not once per X screen
