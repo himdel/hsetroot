@@ -2,7 +2,7 @@ hsetroot - imlib2-based wallpaper changer
 
 original author: `Hyriand <hyriand@thegraveyard.org>` (2003)  
 licence: GPL2  
-needs libimlib2-dev, libx11-dev, libxinerama-dev, pkg-config, make
+needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, pkg-config, make
 
 This repo contains hsetroot 1.0.2 with the following changes:
 
@@ -16,4 +16,4 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
 
-NOTE: When built with imlib2 < 1.12.6, some operations only work correctly when dealing with less than 4096 pixels. This is fixed in current imlib2.
+NOTE: imlib2 < 1.12.6 renders gradients wrong when the screen is larger than 4096 pixels in either dimension (and on some 4K setups), so the Makefile refuses older versions. Use `make IMLIB2_MIN=0` to build anyway.

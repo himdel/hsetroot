@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changes
+
+- imlib2 >= 1.12.6 is now required, older versions render gradients wrong on large screens (`make IMLIB2_MIN=0` builds anyway)
+
 ### Fixes
 
 - Makefile - libraries go to `LDLIBS`, so the build works with `-Wl,--as-needed` and the `--no-as-needed` workaround is gone (packagers can drop theirs too)
