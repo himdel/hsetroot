@@ -47,7 +47,7 @@ X screens (the `.1` in `DISPLAY=:0.1` - rare, not the same as monitors): hsetroo
 ## Building
 
 needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, libxrandr-dev, pkg-config, make
-additionaly, running tests needs xvfb, x11-xserver-utils, x11-utils, imagemagick
+additionally, running tests needs xvfb, x11-xserver-utils, x11-utils, imagemagick
 
 ```sh
 make
