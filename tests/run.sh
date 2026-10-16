@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.." || exit 1
 T=$(mktemp -d)
 XPID=
 trap 'stop; rm -rf "$T"' EXIT
+trap 'exit 1' INT TERM HUP
 pass=0
 fail=0
 
