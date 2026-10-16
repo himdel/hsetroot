@@ -125,6 +125,24 @@ run -cover "$T/rb.png"
 is 10 10 255,0,0
 is 990 990 0,0,255
 
+t "-extend fills the borders with the image edges"
+run -extend "$T/rb.png"
+is 250 10 255,0,0
+is 750 10 0,0,255
+is 250 990 255,0,0
+is 750 990 0,0,255
+convert -size 100x200 xc:red -size 100x200 xc:blue -append "$T/tall.png"
+run -extend "$T/tall.png"
+is 10 10 255,0,0
+is 990 10 255,0,0
+is 990 990 0,0,255
+
+t "-cover leaves no 1px gap"
+convert -size 333x777 xc:red "$T/odd.png"
+run -cover "$T/odd.png"
+is 999 500 255,0,0
+is 0 500 255,0,0
+
 t "-center doesn't bleed into other monitors (#18, #30)"
 screen 2000x500 1000x500+0+0 1000x500+1000+0
 run -center "$T/rb-big.png"
