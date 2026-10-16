@@ -23,9 +23,11 @@ screen() {
   : >"$T/fd"
   shift
   out=screen
+  n=0
   for m in "$@"; do
-    xrandr --setmonitor "m$m" "$(echo "$m" | sed 's/x\([0-9]*\)/\/1x\1\/1/')" $out >/dev/null
+    xrandr --setmonitor "m$n" "$(echo "$m" | sed 's/x\([0-9]*\)/\/1x\1\/1/')" $out >/dev/null
     out=none
+    n=$((n + 1))
   done
 }
 
@@ -175,7 +177,54 @@ rc_is 0
 
 t "hsr-outputs lists RandR monitors by name"
 screen 1000x500 500x500+0+0 500x500+500+0
-[ "$(./hsr-outputs --csv | tr '\n' ' ')" = "name,x,y,width,height m500x500+0+0,0,0,500,500 m500x500+500+0,500,0,500,500 " ] && ok || ko "$(./hsr-outputs --csv)"
+[ "$(./hsr-outputs --csv | tr '\n' ' ')" = "name,x,y,width,height m0,0,0,500,500 m1,500,0,500,500 " ] && ok || ko "$(./hsr-outputs --csv)"
+
+t "--output draws on one output (#14)"
+screen 1000x500 500x500+0+0 500x500+500+0
+run --output m1 -fill "$T/rb.png"
+is 10 10 0,0,0
+is 510 10 255,0,0
+is 990 10 0,0,255
+run --output m0 -solid red --output m1 -solid blue
+is 10 10 255,0,0
+is 990 10 0,0,255
+run --output=m1 -solid red --output all -center "$T/rb.png"
+is 10 10 0,0,0
+is 510 10 255,0,0
+is 230 250 255,0,0
+is 730 250 255,0,0
+
+t "manipulations stay on the --output"
+run -fill "$T/rb.png" --output m1 -fliph
+is 10 10 255,0,0
+is 510 10 0,0,255
+run -solid white --output m1 -tint red
+is 10 10 255,255,255
+is 510 10 255,0,0
+run -solid white --output m0 -brightness -0.5 --output m1 -solid blue
+is 10 10 128,128,128 3
+is 510 10 0,0,255
+run --output m1 -add red -add blue -gradient 90
+is 10 10 0,0,0
+is 501 250 0,0,255 6
+is 998 250 255,0,0 6
+
+t "-clear starts a new gradient on the next output"
+run --output m0 -add red -add blue -gradient 90 -clear --output m1 -add green -add yellow -gradient 90
+is 1 250 0,0,255 6
+is 498 250 255,0,0 6
+is 501 250 255,255,0 6
+is 998 250 0,255,0 6
+
+t "--output errors"
+run -solid red
+run -solid blue --output nosuch -solid green
+rc_is 1
+is 10 10 255,0,0
+run -root --output m0 -solid green
+rc_is 1
+run -root --output all -solid green
+rc_is 0
 
 t "hsr-outputs --help"
 DISPLAY= ./hsr-outputs --help | grep -q Syntax && ok || ko "no help"
