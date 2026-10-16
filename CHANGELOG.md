@@ -17,6 +17,7 @@
 
 ### Fixes
 
+- with multiple monitors, `-solid`, `-gradient` and manipulations after an image only affected the last monitor
 - Makefile - libraries go to `LDLIBS`, so the build works with `-Wl,--as-needed` and the `--no-as-needed` workaround is gone (packagers can drop theirs too)
 
 ## 1.0.5 - 2019-11-18

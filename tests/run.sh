@@ -179,5 +179,11 @@ t "-write failure exits 1"
 run -solid red -write /nonexistent/x.png
 rc_is 1
 
+t "manipulations after an image apply to the whole root (cliprect reset)"
+screen 1000x500 500x500+0+0 500x500+500+0
+run -center "$T/rb.png" -solid red
+is 10 10 255,0,0
+is 990 10 255,0,0
+
 echo "$pass passed, $fail failed"
 [ $fail = 0 ]

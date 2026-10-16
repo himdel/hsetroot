@@ -340,6 +340,8 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
     }
   }
 
+  imlib_context_set_cliprect(0, 0, 0, 0);
+
   if (buffer != image) {
     imlib_context_set_image(buffer);
     imlib_free_image();
