@@ -200,6 +200,10 @@ parse_args(int argc, char **argv, Op *ops)
       }
     } else if (!strcmp(name, "screens")) {
       screen_mask = strtoul(op.arg[0], NULL, 0);
+      if (!screen_mask) {
+        fprintf(stderr, "Bad screen mask (%s): no screens selected\n", op.arg[0]);
+        exit(1);
+      }
     } else {
       ops[nops++] = op;
     }
@@ -473,6 +477,27 @@ main(int argc, char **argv)
     if (opt_root && !strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all")) {
       fprintf(stderr, "Can't use --output %s with -root\n", ops[i].arg[0]);
       exit(1);
+    }
+  }
+
+  // Check every selected screen before drawing on any of them.
+  if (!opt_root && (screen_mask & (screen_mask - 1))) {
+    for (int s = 0; s < ScreenCount(display); s++) {
+      if (!(screen_mask & (1UL << s)))
+        continue;
+      int count = 0;
+      Output *available = query_outputs(display, s, &count);
+      if (!count && need_outputs) {
+        fprintf(stderr, "No outputs found (all turned off?), use -root to draw on the whole screen\n");
+        exit(1);
+      }
+      for (int i = 0; i < nops; i++) {
+        if (!strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all") && !find_output(available, count, ops[i].arg[0])) {
+          fprintf(stderr, "Unknown output (%s), see hsr-outputs\n", ops[i].arg[0]);
+          exit(1);
+        }
+      }
+      free(available);
     }
   }
 

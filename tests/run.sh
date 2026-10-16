@@ -273,6 +273,27 @@ for args in "--screen 2" "--screen -1" "-screens 4"; do
   run $args -solid red
   rc_is 1
 done
+
+t "zero screen mask is an error"
+run -screens 0 -solid red
+rc_is 1
+grep -q 'no screens selected' "$T/out" && ok || ko "zero screen mask: $(cat "$T/out")"
+shot 0
+is 10 10 255,255,255
+
+t "unknown output on another X screen leaves both roots untouched"
+DISPLAY=$D.0 xrandr --setmonitor m0 400/1x100/1+0+0 screen >/dev/null
+DISPLAY=$D.1 xrandr --setmonitor m1 200/1x100/1+0+0 screen >/dev/null
+DISPLAY=$D.0 ./hsr-outputs --csv | grep -q '^m0,0,0,400,100$' && ok || ko "m0 not found on screen 0"
+DISPLAY=$D.1 ./hsr-outputs --csv | grep -q '^m1,0,0,200,100$' && ok || ko "m1 not found on screen 1"
+DISPLAY=$D ./hsetroot -screens 3 -solid red
+DISPLAY=$D ./hsetroot -screens 3 --output m0 -solid blue >"$T/out" 2>&1
+rc=$?
+rc_is 1
+shot 0
+is 10 10 255,0,0
+shot 1
+is 10 10 255,0,0
 export DISPLAY=$D
 
 t "Xinerama fallback without RandR"
