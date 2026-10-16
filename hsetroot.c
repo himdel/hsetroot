@@ -47,7 +47,7 @@ static const Option options[] = {
   {"rv", {NULL}, "Swap the foreground and background colors"},
   {"reverse", {NULL}, "Same as --rv"},
   {"bitmap", {"<xbm>"}, "Render an X bitmap file tiled"},
-  {"mod", {"<x>", "<y>"}, "Render a grid pattern tiled, x and y are 1-16"},
+  {"mod", {"<x>", "<y>"}, "Render a tiled grid with vertical/horizontal line spacing x/y"},
   {"gray", {NULL}, "Render a gray (checkerboard) pattern"},
   {"grey", {NULL}, "Same as --gray"},
   {NULL, {NULL}, "Manipulations:"},
