@@ -2,7 +2,8 @@ hsetroot - imlib2-based wallpaper changer
 
 original author: `Hyriand <hyriand@thegraveyard.org>` (2003)  
 licence: GPL2  
-needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, pkg-config, make
+needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, pkg-config, make  
+`make check` runs the tests in Xvfb, needs xvfb, x11-xserver-utils (xrandr), x11-utils (xprop), imagemagick
 
 This repo contains hsetroot 1.0.2 with the following changes:
 
