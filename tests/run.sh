@@ -432,6 +432,15 @@ done
 t "--help and --version work without a display"
 DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
 
+t "version ignores a parent git repo (tarball inside a packaging repo)"
+if command -v git >/dev/null; then
+  mkdir -p "$T/pkg/src"
+  git -C "$T/pkg" init -q && git -C "$T/pkg" -c user.name=t -c user.email=t@t commit -q --allow-empty -m pkg && git -C "$T/pkg" tag 9.9-1
+  cp Makefile "$T/pkg/src/"
+  v=$(make -s -C "$T/pkg/src" --eval 'v: ; @echo $(VERSION)' v)
+  [ "$v" = "$(sed -n 's/^VERSION.*|| echo \(.*\))$/\1/p' Makefile)" ] && ok || ko "got '$v'"
+fi
+
 t "man page lists every option"
 for o in $(./hsetroot --help | sed -n 's/^ --\([a-z]*\).*/\1/p'); do
   grep -q "fB\\\\-\\\\-$o\\\\fR" hsetroot.1 && ok || ko "--$o missing in hsetroot.1"
