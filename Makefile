@@ -12,21 +12,22 @@ DESTDIR?=
 #CFLAGS+=-march=x86-64 -mtune=generic -O2 -pipe -fno-plt
 #LDFLAGS+=-Wl,-O1,--sort-common,--as-needed,-z,relro,-z,now
 
-# arch & debian hardening workaround
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-	LDFLAGS+=-Wl,--no-as-needed
+# older imlib2 renders gradients wrong above 4096px, IMLIB2_MIN=0 to build anyway
+IMLIB2_MIN?=1.12.6
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(shell $(PKG_CONFIG) --atleast-version=$(IMLIB2_MIN) imlib2 && echo ok),ok)
+$(error imlib2 >= $(IMLIB2_MIN) required)
+endif
 endif
 
-
 CFLAGS+=$(shell $(PKG_CONFIG) x11 --cflags)
-LDFLAGS+=$(shell $(PKG_CONFIG) x11 --libs)
+LDLIBS+=$(shell $(PKG_CONFIG) x11 --libs)
 
 CFLAGS+=$(shell $(PKG_CONFIG) imlib2 --cflags)
-LDFLAGS+=$(shell $(PKG_CONFIG) imlib2 --libs)
+LDLIBS+=$(shell $(PKG_CONFIG) imlib2 --libs)
 
 CFLAGS+=$(shell $(PKG_CONFIG) xinerama --cflags)
-LDFLAGS+=$(shell $(PKG_CONFIG) xinerama --libs)
+LDLIBS+=$(shell $(PKG_CONFIG) xinerama --libs)
 
 all: hsetroot hsr-outputs
 
