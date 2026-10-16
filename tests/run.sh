@@ -125,6 +125,31 @@ run -cover "$T/rb.png"
 is 10 10 255,0,0
 is 990 990 0,0,255
 
+t "-extend fills the borders with the image edges"
+run -extend "$T/rb.png"
+is 250 10 255,0,0
+is 750 10 0,0,255
+is 250 990 255,0,0
+is 750 990 0,0,255
+convert -size 100x200 xc:red -size 100x200 xc:blue -append "$T/tall.png"
+run -extend "$T/tall.png"
+is 10 10 255,0,0
+is 990 10 255,0,0
+is 990 990 0,0,255
+
+t "-cover leaves no 1px gap"
+convert -size 333x777 xc:red "$T/odd.png"
+run -cover "$T/odd.png"
+is 999 500 255,0,0
+is 0 500 255,0,0
+
+t "-cover chooses the covering axis before rounding"
+screen 1000x100
+convert -size 2000x201 xc:red "$T/near-edge.png"
+run -cover "$T/near-edge.png"
+is 0 50 255,0,0
+is 999 50 255,0,0
+
 t "-center doesn't bleed into other monitors (#18, #30)"
 screen 2000x500 1000x500+0+0 1000x500+1000+0
 run -center "$T/rb-big.png"
@@ -375,6 +400,12 @@ run -solid red -write "$T/w.png"
 
 t "--help and --version work without a display"
 DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
+
+t "man page lists every option"
+for o in $(./hsetroot --help | sed -n 's/^ --\([a-z]*\).*/\1/p'); do
+  grep -q "fB\\\\-\\\\-$o\\\\fR" hsetroot.1 && ok || ko "--$o missing in hsetroot.1"
+done
+grep -Fq '\fB\-\-screen\fR' hsetroot.1 && ko "removed --screen still in hsetroot.1" || ok
 
 t "long options (#13)"
 screen 400x100

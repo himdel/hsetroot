@@ -341,19 +341,22 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
       imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x, o.y, o.width, o.height);
     } else if ((mode == Full) || (mode == Xtend) || (mode == Cover)) {
       double aspect = ((double) o.width) / imgW;
-      if (((int) (imgH * aspect) > o.height) != /*xor*/ (mode == Cover))
+      if ((imgH * aspect > o.height) != /*xor*/ (mode == Cover))
         aspect = (double) o.height / (double) imgH;
 
-      int top = (o.height - (int) (imgH * aspect)) / 2;
-      int left = (o.width - (int) (imgW * aspect)) / 2;
+      // rounded, truncating could leave a 1px gap
+      int scaledW = imgW * aspect + 0.5;
+      int scaledH = imgH * aspect + 0.5;
+      int top = (o.height - scaledH) / 2;
+      int left = (o.width - scaledW) / 2;
 
-      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, (int) (imgW * aspect), (int) (imgH * aspect));
+      imlib_blend_image_onto_image(buffer, 0, 0, 0, imgW, imgH, o.x + left, o.y + top, scaledW, scaledH);
 
       if (mode == Xtend) {
         int w;
 
         if (left > 0) {
-          int right = left - 1 + (int) (imgW * aspect);
+          int right = left - 1 + scaledW;
           /* check only the right border - left is int divided so the right border is larger */
           for (w = 1; right + w < o.width; w <<= 1) {
             imlib_image_copy_rect(o.x + left + 1 - w, o.y, w, o.height, o.x + left + 1 - w - w, o.y);
@@ -362,7 +365,7 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
         }
 
         if (top > 0) {
-          int bottom = top - 1 + (int) (imgH * aspect);
+          int bottom = top - 1 + scaledH;
           for (w = 1; (bottom + w < o.height); w <<= 1) {
             imlib_image_copy_rect(o.x, o.y + top + 1 - w, o.width, w, o.x, o.y + top + 1 - w - w);
             imlib_image_copy_rect(o.x, o.y + bottom, o.width, w, o.x, o.y + bottom + w);

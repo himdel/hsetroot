@@ -4,6 +4,7 @@
 
 ### Features
 
+- man page, `make install` puts it in `$(PREFIX)/share/man/man1`
 - xsetroot-style bitmap backgrounds: `-bitmap file.xbm`, `-mod x y`, `-gray`/`-grey`, colored with `-fg`, `-bg`, `-rv`/`-reverse` - pixel-identical to xsetroot, except the colors are positional and go before the bitmap: `xsetroot -mod 16 16 -fg red` is `hsetroot -fg red -mod 16 16` (#25)
 - `--output NAME` - everything after it applies to just that monitor (images, `-solid`, `-gradient`, manipulations like `-fliph` or `-tint`), `--output all` switches back; e.g. `hsetroot --output eDP-1 --cover laptop.jpg --output HDMI-1 --cover tv.jpg` (#14)
 - `hsr-outputs --help`, unknown options are an error now
@@ -29,6 +30,7 @@
 - an unknown `--output` on a later X screen no longer changes the wallpaper on earlier screens before failing
 - `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
 - malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
+- `-cover`, `-full` and `-extend` could leave black gaps at an edge for some image sizes
 - drawing on more than one X screen crashed with an X error (`BadMatch` in `X_ShmPutImage`, or `BadValue` in `X_KillClient`)
 - gradients on screens over 4096px came out as a solid color even with imlib2 1.12.6, hsetroot now scales the color distances to avoid the imlib2 bug; gradients also reach their end colors exactly now (#28, #42, #43)
 - `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)

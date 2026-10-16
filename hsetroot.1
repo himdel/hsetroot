@@ -1,0 +1,182 @@
+.TH HSETROOT 1 "2026" "hsetroot" "User Commands"
+.SH NAME
+hsetroot \- yet another wallpaper application
+.SH SYNOPSIS
+.B hsetroot
+[\fB\-\-command1\fR [\fIarg\fR...]] [\fB\-\-command2\fR [\fIarg\fR...]]...
+.SH DESCRIPTION
+hsetroot is a tool which allows you to compose wallpapers ("root pixmaps")
+for X. It has a lot of options like rendering gradients, solids, images but
+it also allows you to perform manipulations on those things, or chain them
+together.
+.PP
+It sets the result as the root window background, including the
+\fB_XROOTPMAP_ID\fR and \fBESETROOT_PMAP_ID\fR properties used by compositors
+and pseudo-transparent terminals.
+.PP
+Commands are applied in the order given, each one on top of what's drawn so far.
+Manipulations (\fB\-\-fliph\fR, \fB\-\-blur\fR, ...) affect what's already drawn,
+settings (\fB\-\-alpha\fR, \fB\-\-fg\fR, \fB\-\-add\fR, ...) affect what comes after.
+Without any commands, the background is set to black.
+.PP
+Every command can be written as \fB\-\-name\fR \fIvalue\fR, \fB\-\-name\fR=\fIvalue\fR
+or the old \fB\-name\fR \fIvalue\fR.
+.PP
+Images and gradients are drawn on each monitor (as listed by
+\fBxrandr \-\-listmonitors\fR, or Xinerama heads on servers without RandR 1.5).
+\fB\-\-root\fR treats all of them as one big screen, \fB\-\-output\fR limits the
+following commands to one monitor.
+.PP
+hsetroot draws on the X screen from \fB$DISPLAY\fR (\fB:0.1\fR is screen 1).
+Most setups have just one X screen, with any number of monitors.
+.SH OPTIONS
+.SS "Generic options"
+.TP
+\fB\-\-root\fR
+Treat multiple displays as one big screen (ignore xrandr outputs).
+.TP
+\fB\-\-screens\fR \fIint\fR
+Draw on several X screens, as a bitmask (1 = screen 0, 2 = screen 1, 3 = both;
+0 is an error).
+.TP
+\fB\-\-output\fR \fIname\fR
+Draw only on this output from now on, \fBall\fR for every output again.
+Names are the ones from \fBxrandr \-\-listmonitors\fR or \fBhsr\-outputs\fR.
+Can't be used with \fB\-\-root\fR, except for \fBall\fR.
+Settings such as \fB\-\-alpha\fR and colors added with \fB\-\-add\fR carry
+over to the next output; use \fB\-\-clear\fR for a new gradient.
+.SS "Gradients"
+.TP
+\fB\-\-add\fR \fIcolor\fR
+Add color to range using distance 1.
+.TP
+\fB\-\-addd\fR \fIcolor\fR \fIdistance\fR
+Add color to range using custom distance.
+.TP
+\fB\-\-gradient\fR \fIangle\fR
+Render gradient using specified angle, on each monitor.
+.TP
+\fB\-\-clear\fR
+Clear the color range.
+.SS "Solid"
+.TP
+\fB\-\-solid\fR \fIcolor\fR
+Render a solid using the specified color.
+.SS "Image files"
+.TP
+\fB\-\-center\fR \fIimage\fR
+Render an image centered on screen.
+.TP
+\fB\-\-cover\fR \fIimage\fR
+Render an image centered on screen scaled so that all of screen is covered.
+.TP
+\fB\-\-tile\fR \fIimage\fR
+Render an image tiled.
+.TP
+\fB\-\-full\fR \fIimage\fR
+Render an image maximum aspect.
+.TP
+\fB\-\-extend\fR \fIimage\fR
+Render an image maximum aspect, and copy 1px border taken from the image over
+the remaining area so that no black borders are shown.
+.TP
+\fB\-\-fill\fR \fIimage\fR
+Render an image stretched.
+.SS "Bitmaps"
+As in \fBxsetroot\fR(1), tiled from the top left corner. Unlike xsetroot, the
+colors have to come before the bitmap.
+.TP
+\fB\-\-fg\fR \fIcolor\fR
+Foreground color for the following bitmaps (default black).
+.TP
+\fB\-\-bg\fR \fIcolor\fR
+Background color for the following bitmaps (default white).
+.TP
+\fB\-\-rv\fR, \fB\-\-reverse\fR
+Swap the foreground and background colors.
+.TP
+\fB\-\-bitmap\fR \fIxbm\fR
+Render an X bitmap file tiled.
+.TP
+\fB\-\-mod\fR \fIx\fR \fIy\fR
+Render a tiled grid with vertical lines \fIx\fR pixels apart and horizontal
+lines \fIy\fR pixels apart. The pattern repeats every 16 pixels; 0 fills
+that direction, and values above 16 give one line per tile.
+.TP
+\fB\-\-gray\fR, \fB\-\-grey\fR
+Render a gray (checkerboard) pattern.
+.SS "Manipulations"
+.TP
+\fB\-\-tint\fR \fIcolor\fR
+Tint the current image.
+.TP
+\fB\-\-blur\fR \fIradius\fR
+Blur the current image.
+.TP
+\fB\-\-sharpen\fR \fIradius\fR
+Sharpen the current image.
+.TP
+\fB\-\-contrast\fR \fIamount\fR
+Adjust contrast of current image.
+.TP
+\fB\-\-brightness\fR \fIamount\fR
+Adjust brightness of current image.
+.TP
+\fB\-\-gamma\fR \fIamount\fR
+Adjust gamma level of current image.
+.TP
+\fB\-\-flipv\fR
+Flip the current image vertically.
+.TP
+\fB\-\-fliph\fR
+Flip the current image horizontally.
+.TP
+\fB\-\-flipd\fR
+Flip the current image diagonally.
+.SS "Misc"
+.TP
+\fB\-\-alpha\fR \fI0\-255\fR
+Adjust alpha level for colors and images.
+.TP
+\fB\-\-write\fR \fIfilename\fR
+Write current image to file.
+.TP
+\fB\-\-help\fR, \fB\-h\fR
+Show the help.
+.TP
+\fB\-\-version\fR
+Show the version.
+.SH COLORS
+Colors are in the \fB#rgb\fR, \fB#rrggbb\fR, \fB#rrggbbaa\fR, \fBrgb:r/g/b\fR
+formats or an X color name (see \fBXParseColor\fR(3)).
+.SH EXIT STATUS
+0 on success, 1 on any error (unknown option, bad value, image or color, unknown
+output, no active monitors), in which case the background is left alone.
+123 when the X display can't be opened.
+.SH EXAMPLES
+.TP
+hsetroot \-\-cover wallpaper.jpg
+One image, scaled to cover each monitor.
+.TP
+hsetroot \-\-root \-\-fill panorama.jpg
+One image stretched over all monitors.
+.TP
+hsetroot \-\-output eDP\-1 \-\-cover laptop.jpg \-\-output HDMI\-1 \-\-cover tv.jpg
+A different image on each monitor.
+.TP
+hsetroot \-\-add '#1e1e2e' \-\-add '#89b4fa' \-\-gradient 30
+A gradient on each monitor.
+.TP
+hsetroot \-\-fg gray20 \-\-bg black \-\-mod 16 16
+The xsetroot grid.
+.SH SEE ALSO
+\fBhsr\-outputs\fR (lists the monitors hsetroot sees, \fB\-\-csv\fR, \fB\-\-json\fR),
+\fBxsetroot\fR(1), \fBxrandr\fR(1)
+.SH BUGS
+https://github.com/himdel/hsetroot/issues
+.SH AUTHORS
+hsetroot was written by Hyriand <hyriand@thegraveyard.org>, and is maintained at
+https://github.com/himdel/hsetroot by Martin Hradil and contributors.
+.PP
+This manual page is based on the one written for Debian by Francesco Pedrini
+(2005) and Alessandro Ghedini (2012, 2013).
