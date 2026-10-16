@@ -25,7 +25,7 @@ typedef struct {
 static const Option options[] = {
   {NULL, {NULL}, "Generic Options:"},
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
-  {"screens", {"<int>"}, "Set a screenmask to use (1 = screen 0, 2 = screen 1, 3 = both, ...)"},
+  {"screens", {"<int>"}, "X screen bitmask (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},

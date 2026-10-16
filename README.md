@@ -42,7 +42,7 @@ Images and gradients go on each monitor, as listed by `xrandr --listmonitors` (s
  * `hsr-outputs` lists the monitors hsetroot sees, with their names (`--csv`, `--json`)
  * when no monitor is active (all turned off), drawing images or gradients is an error - `--root` still works
 
-X screens (the `.1` in `DISPLAY=:0.1` - rare, not the same as monitors): hsetroot draws on the screen from `$DISPLAY`. Set `DISPLAY=:0.1` for screen 1, or use `--screens MASK` for several (1 = screen 0, 2 = screen 1, 3 = both; 0 is an error).
+X screens (the `.1` in `DISPLAY=:0.1` - rare, not the same as monitors): hsetroot draws on the screen from `$DISPLAY`. Set `DISPLAY=:0.1` for screen 1, or use `--screens MASK` for several, a bit per screen (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, 7 = screens 0 to 2, ...; 0 is an error).
 
 ## Building
 
