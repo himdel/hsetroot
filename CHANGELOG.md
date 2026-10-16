@@ -4,6 +4,8 @@
 
 ### Features
 
+- `-gradient` takes fractional angles (#45, thanks @lindhobe)
+- `make install` supports `DESTDIR` (#38, thanks @sham1)
 - warnings for settings that nothing after them uses, e.g. `-fg` after the bitmap, `-add` without `-gradient`, `-alpha` at the end
 - man page, `make install` puts it in `$(PREFIX)/share/man/man1`
 - xsetroot-style bitmap backgrounds: `-bitmap file.xbm`, `-mod x y`, `-gray`/`-grey`, colored with `-fg`, `-bg`, `-rv`/`-reverse` - pixel-identical to xsetroot, except the colors are positional and go before the bitmap: `xsetroot -mod 16 16 -fg red` is `hsetroot -fg red -mod 16 16` (#25)
@@ -29,6 +31,11 @@
 
 ### Fixes
 
+- `-center`, `-cover` and `-tile` no longer draw over neighbouring monitors (#18, #30, thanks @djpohly)
+- the previous background pixmap is freed again - the atom name used to find it was wrong (#35, #36, thanks @vincentbernat)
+- `hsr-outputs` no longer crashes without a display (#32, thanks @jer-gentoo)
+- builds on macOS (#31, thanks @sfroment)
+- `make install` fixed (#39, thanks @hramrach)
 - an unknown `--output` on a later X screen no longer changes the wallpaper on earlier screens before failing
 - `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
 - malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
