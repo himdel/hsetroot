@@ -405,6 +405,19 @@ main(int argc, char **argv)
     }
   }
 
+  // imlib2 (1.12.6 too) truncates its color range step above 4096px when distances are small,
+  // scaling all of them keeps the same gradient
+  long distances = 0;
+  for (int i = 0; i < nops; i++)
+    if (!strcmp(ops[i].opt->name, "add") || !strcmp(ops[i].opt->name, "addd"))
+      distances += ops[i].arg[1] ? labs(strtol(ops[i].arg[1], NULL, 0)) : 1;
+  // ..as long as the sum stays below imlib's int overflow at 32768
+  int scale = distances ? 32767 / distances : 1;
+  if (scale > 256)
+    scale = 256;
+  if (scale < 1)
+    scale = 1;
+
   int noutputs = 0;
   XineramaScreenInfo *outputs = NULL;
 
@@ -483,7 +496,7 @@ main(int argc, char **argv)
       } else if (!strcmp(name, "add") || !strcmp(name, "addd")) {
         parse_color(op->arg[0], &c, alpha);
         imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_add_color_to_color_range(op->arg[1] ? strtol(op->arg[1], NULL, 0) : 1);
+        imlib_add_color_to_color_range(scale * (op->arg[1] ? strtol(op->arg[1], NULL, 0) : 1));
       } else if (!strcmp(name, "gradient")) {
         imlib_image_fill_color_range_rectangle(0, 0, width, height, strtod(op->arg[0], NULL));
       } else if (op->image) {

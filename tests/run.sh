@@ -152,6 +152,27 @@ run -add red -add blue -gradient 90
 is 5 250 0,0,255 10
 is 995 250 255,0,0 10
 
+t "gradients over 4096px (#28, #42, #43)"
+for g in 5120x500 8193x200 500x5000; do
+  screen $g
+  w=${g%x*}
+  h=${g#*x}
+  run -add red -add blue -gradient 90
+  is 0 $((h / 2)) 0,0,255 6
+  is $((w / 2)) $((h / 2)) 128,0,128 6
+  is $((w - 1)) $((h / 2)) 255,0,0 6
+  run -add red -add blue -gradient 0
+  is $((w / 2)) 0 255,0,0 6
+  is $((w / 2)) $((h - 1)) 0,0,255 6
+done
+run -addd red 20000 -addd blue 20000 -gradient 0
+is 2 2 255,0,0 4
+
+t "fractional gradient angle (#45)"
+screen 1000x500
+run -add red -add blue -gradient 45.5
+rc_is 0
+
 t "-write"
 run -solid red -write "$T/w.png"
 [ -s "$T/w.png" ] && ok || ko "no file written"

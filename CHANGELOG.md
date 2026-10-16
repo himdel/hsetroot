@@ -19,6 +19,7 @@
 
 - `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
 - malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
+- gradients on screens over 4096px came out as a solid color even with imlib2 1.12.6, hsetroot now scales the color distances to avoid the imlib2 bug; gradients also reach their end colors exactly now (#28, #42, #43)
 - `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)
 - with multiple monitors, `-solid`, `-gradient` and manipulations after an image only affected the last monitor
 - Makefile - libraries go to `LDLIBS`, so the build works with `-Wl,--as-needed` and the `--no-as-needed` workaround is gone (packagers can drop theirs too)
