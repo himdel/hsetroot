@@ -2,6 +2,10 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/Xinerama.h>
 #include <Imlib2.h>
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,17 +108,27 @@ valid_arg(const char *kind, const char *arg)
   char *end;
   long l;
 
-  if (!strcmp(kind, "<int>") || !strcmp(kind, "<radius>") || !strcmp(kind, "<distance>") || !strcmp(kind, "<0-255>")) {
+  errno = 0;
+  if (!strcmp(kind, "<int>")) {
+    if (*arg == '-')
+      return 0;
+    strtoul(arg, &end, 0);
+  } else if (!strcmp(kind, "<radius>") || !strcmp(kind, "<distance>") || !strcmp(kind, "<0-255>")) {
     l = strtol(arg, &end, 0);
     if (!strcmp(kind, "<0-255>") && (l < 0 || l > 255))
       return 0;
+    if (!strcmp(kind, "<radius>") && (l < 0 || l > INT_MAX))
+      return 0;
+    if (!strcmp(kind, "<distance>") && (l < INT_MIN || l > INT_MAX))
+      return 0;
   } else if (!strcmp(kind, "<amount>") || !strcmp(kind, "<angle>")) {
-    strtod(arg, &end);
+    if (!isfinite(strtod(arg, &end)))
+      return 0;
   } else {
     return 1;
   }
 
-  return *arg && !*end;
+  return *arg && !*end && errno != ERANGE;
 }
 
 // argv -> ops, handles global options, exits on errors
@@ -237,6 +251,8 @@ parse_color(const char *arg, Color *c, int default_alpha)
 
   // we support #rrggbbaa..
   if ((arg[0] == '#') && (strlen(arg) == 9)) {
+    if (!isxdigit((unsigned char) arg[7]) || !isxdigit((unsigned char) arg[8]))
+      return 0;
     if (sscanf(arg + 7, "%2x", &(c->a)) != 1)
       return 0;
     // ..but XParseColor wouldn't
@@ -407,7 +423,7 @@ main(int argc, char **argv)
   }
 
   for (/* global */ screen = 0; screen < ScreenCount(display); screen++) {
-    if ((screen_mask & (1 << screen)) == 0)
+    if ((screen_mask & (1UL << screen)) == 0)
       continue;
 
     Imlib_Context *context = imlib_context_new();
@@ -511,7 +527,7 @@ main(int argc, char **argv)
         int err = 0;
         imlib_save_image_with_errno_return(op->arg[0], &err);
         if (err) {
-          fprintf(stderr, "Can't write (%s): %s\n", op->arg[0], strerror(err));
+          fprintf(stderr, "Can't write (%s): %s\n", op->arg[0], imlib_strerror(err));
           exit(1);
         }
       }

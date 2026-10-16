@@ -168,7 +168,7 @@ for f in "--fill=$T/rb.png" "--fill $T/rb.png" "-fill $T/rb.png" "-fill=$T/rb.pn
 done
 
 t "errors exit 1, root untouched (#6)"
-for args in "-fill /nonexistent" "-solid nosuchcolor" "-solid" "-addd red" "-blur 3px" "-blur ''" "-alpha 300" "-gradient x" "-bogus" "foo" "-flipv=1" "-solid #ff0000zz"; do
+for args in "-fill /nonexistent" "-solid nosuchcolor" "-solid" "-addd red" "-blur 3px" "-blur ''" "-blur -1" "-blur 2147483648" "-addd red 2147483648" "-screens -1" "-screens 18446744073709551616" "-alpha 300" "-gradient x" "-gradient nan" "-contrast inf" "-bogus" "foo" "-flipv=1" "-solid #ff0000zz" "-solid #ff0000fZ"; do
   run -solid red
   eval run -solid blue $args
   rc_is 1
@@ -178,6 +178,11 @@ done
 t "-write failure exits 1"
 run -solid red -write /nonexistent/x.png
 rc_is 1
+
+t "-write reports unsupported formats"
+run -solid red -write "$T/w.unknownformat"
+rc_is 1
+grep -q 'No saver' "$T/out" && ok || ko "write error: $(cat "$T/out")"
 
 t "manipulations after an image apply to the whole root (cliprect reset)"
 screen 1000x500 500x500+0+0 500x500+500+0

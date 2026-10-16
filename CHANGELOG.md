@@ -10,13 +10,15 @@
 ### Changes
 
 - any error (bad image, bad color, bad number, missing argument, unknown option, failed `-write`) now exits with 1 and leaves the background untouched, previously hsetroot carried on and exited 0 (#6)
-- numeric arguments are checked strictly (`-blur 3px` and `-alpha 300` are errors now)
+- numeric arguments are checked strictly (`-blur 3px`, negative or out-of-range radii and screen masks, non-finite values, and `-alpha 300` are errors now)
 - images are loaded once, not once per X screen
 - `make check` runs a regression test suite in Xvfb
 - imlib2 >= 1.12.6 is now required, older versions render gradients wrong on large screens (`make IMLIB2_MIN=0` builds anyway)
 
 ### Fixes
 
+- `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
+- malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
 - `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)
 - with multiple monitors, `-solid`, `-gradient` and manipulations after an image only affected the last monitor
 - Makefile - libraries go to `LDLIBS`, so the build works with `-Wl,--as-needed` and the `--no-as-needed` workaround is gone (packagers can drop theirs too)
