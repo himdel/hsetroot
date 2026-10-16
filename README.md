@@ -12,7 +12,7 @@ This repo contains hsetroot 1.0.2 with the following changes:
      * Fix a segmentation fault when no display is present.
      * Add the '-extend' option
      * Add the '-cover' option
-   * reintroduced the screen mask `-screens` option from earlier versions .. which is rather useless actually, as it deals with X screens, not xrandr outputs
+   * X screens (the `:0.1` part of `$DISPLAY`, not monitors - for those see `--output`): hsetroot draws on the screen from `$DISPLAY`; use `DISPLAY=:0.1` for screen 1 or `-screens <mask>` for several (1 = screen 0, 2 = screen 1, 3 = both; 0 is an error)
    * **added output support for all modes** - images are drawn on each monitor, as listed by `xrandr --listmonitors` (so `xrandr --setmonitor` works too), falls back to Xinerama and then to the whole screen on servers without RandR 1.5
      * use `-root` to treat multiple displays as one big display (original hsetroot behavior)
      * when no monitor is active (all turned off), drawing images is an error, `-root` still works
@@ -22,7 +22,7 @@ This repo contains hsetroot 1.0.2 with the following changes:
    * added support for color names and more color formats (using XParseColor except for #rrggbbaa)
    * modern `--long` options (`--fill image.jpg`, `--fill=image.jpg`), the old `-fill image.jpg` form still works
    * `-h`/`--help` and `--version`
-   * any error (bad image, bad color, unknown option, ...) exits with 1 before touching the background; failed `-write` reports the imlib2 error
+   * any error (bad image, bad color, unknown option, or an unknown output on another X screen) exits with 1 before touching the background; failed `-write` reports the imlib2 error
    * numeric arguments reject out-of-range values, negative blur/sharpen radii and screen masks, and non-finite angles/amounts
 
 NOTE: imlib2 < 1.12.6 renders gradients wrong when the screen is larger than 4096 pixels in either dimension (and on some 4K setups), so the Makefile refuses older versions. Use `make IMLIB2_MIN=0` to build anyway.

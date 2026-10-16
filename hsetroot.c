@@ -24,7 +24,7 @@ typedef struct {
 static const Option options[] = {
   {NULL, {NULL}, "Generic Options:"},
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
-  {"screens", {"<int>"}, "Set a screenmask to use"},
+  {"screens", {"<int>"}, "Set a screenmask to use (1 = screen 0, 2 = screen 1, 3 = both, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},
@@ -101,7 +101,7 @@ usage(FILE *f, char *commandline)
 Display *display;
 int screen;
 int opt_root = false;
-unsigned long screen_mask = ~0;
+unsigned long screen_mask = 0;
 
 int
 valid_arg(const char *kind, const char *arg)
@@ -192,12 +192,22 @@ parse_args(int argc, char **argv, Op *ops)
       opt_root = true;
     } else if (!strcmp(name, "screens")) {
       screen_mask = strtoul(op.arg[0], NULL, 0);
+      if (!screen_mask) {
+        fprintf(stderr, "Bad screen mask (%s): no screens selected\n", op.arg[0]);
+        exit(1);
+      }
     } else {
       ops[nops++] = op;
     }
   }
 
   return nops;
+}
+
+int
+ignore_errors(Display *display, XErrorEvent *event)
+{
+  return 0;
 }
 
 // Adapted from fluxbox' bsetroot
@@ -219,8 +229,14 @@ setRootAtoms(Pixmap pixmap)
     if (type == XA_PIXMAP) {
       XGetWindowProperty(display, RootWindow(display, screen), atom_eroot, 0L, 1L, False, AnyPropertyType, &type, &format, &length, &after, &data_eroot);
 
-      if (data_root && data_eroot && type == XA_PIXMAP && *((Pixmap *) data_root) == *((Pixmap *) data_eroot))
+      // the old owner may be gone already, when it also set another screen we just did
+      if (data_root && data_eroot && type == XA_PIXMAP && *((Pixmap *) data_root) == *((Pixmap *) data_eroot)) {
+        XSync(display, False);
+        XErrorHandler handler = XSetErrorHandler(ignore_errors);
         XKillClient(display, *((Pixmap *) data_root));
+        XSync(display, False);
+        XSetErrorHandler(handler);
+      }
     }
   }
 
@@ -407,6 +423,13 @@ main(int argc, char **argv)
     exit(123);
   }
 
+  if (!screen_mask)
+    screen_mask = 1UL << DefaultScreen(display);
+  if (!(screen_mask & ((1UL << ScreenCount(display)) - 1))) {
+    fprintf(stderr, "No such screen, there are %d\n", ScreenCount(display));
+    exit(1);
+  }
+
   // check colors and load images before touching anything
   for (int i = 0; i < nops; i++) {
     Op *op = &ops[i];
@@ -446,6 +469,27 @@ main(int argc, char **argv)
     if (opt_root && !strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all")) {
       fprintf(stderr, "Can't use --output %s with -root\n", ops[i].arg[0]);
       exit(1);
+    }
+  }
+
+  // Check every selected screen before drawing on any of them.
+  if (!opt_root && (screen_mask & (screen_mask - 1))) {
+    for (int s = 0; s < ScreenCount(display); s++) {
+      if (!(screen_mask & (1UL << s)))
+        continue;
+      int count = 0;
+      Output *available = query_outputs(display, s, &count);
+      if (!count && need_outputs) {
+        fprintf(stderr, "No outputs found (all turned off?), use -root to draw on the whole screen\n");
+        exit(1);
+      }
+      for (int i = 0; i < nops; i++) {
+        if (!strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all") && !find_output(available, count, ops[i].arg[0])) {
+          fprintf(stderr, "Unknown output (%s), see hsr-outputs\n", ops[i].arg[0]);
+          exit(1);
+        }
+      }
+      free(available);
     }
   }
 
@@ -613,6 +657,8 @@ main(int argc, char **argv)
     XFlush(display);
     XSync(display, False);
 
+    // drop imlib's cached XImages and GCs, they don't work on another screen's root
+    imlib_context_disconnect_display();
     imlib_context_pop();
     imlib_context_free(context);
 

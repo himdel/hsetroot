@@ -11,6 +11,8 @@
 
 ### Changes
 
+- `-screens 0` now errors instead of silently doing nothing; skip the invocation to keep the old no-op behavior
+- **upgrade note:** with multiple X screens (`:0.0`, `:0.1`, zaphod-style setups - not multiple monitors), only the screen from `$DISPLAY` is drawn now, like other X tools do; before, hsetroot drew on all of them. Use `-screens 3` (bitmask) for the old behaviour, or run it once per screen (#24)
 - `hsr-outputs` prints the monitor names instead of Xinerama screen numbers: csv `name,x,y,width,height`, json/text keys `name`, `x`, `y`, `width`, `height`
 - monitors come from XRandR (`xrandr --listmonitors`, including monitors defined with `xrandr --setmonitor`), with Xinerama and then the whole screen as fallbacks - new build dependency on libxrandr (Debian `libxrandr-dev`, Arch `libxrandr`)
 - when no monitor is active (all turned off or disabled), drawing an image is an error instead of a silently black background - use `-root` to draw on the whole screen (#41)
@@ -22,8 +24,10 @@
 
 ### Fixes
 
+- an unknown `--output` on a later X screen no longer changes the wallpaper on earlier screens before failing
 - `-write` reports imlib2 errors such as unsupported file formats instead of `Unknown error -3`
 - malformed `#rrggbbaa` colors with only one valid alpha digit are rejected
+- drawing on more than one X screen crashed with an X error (`BadMatch` in `X_ShmPutImage`, or `BadValue` in `X_KillClient`)
 - gradients on screens over 4096px came out as a solid color even with imlib2 1.12.6, hsetroot now scales the color distances to avoid the imlib2 bug; gradients also reach their end colors exactly now (#28, #42, #43)
 - `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)
 - with multiple monitors, `-solid`, `-gradient` and manipulations after an image only affected the last monitor
