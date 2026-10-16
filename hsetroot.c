@@ -270,6 +270,7 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
     buffer = imlib_clone_image();
     imlib_context_set_image(buffer);
     imlib_image_set_has_alpha(1);
+    Imlib_Color_Modifier previous = imlib_context_get_color_modifier();
     Imlib_Color_Modifier modifier = imlib_create_color_modifier();
     imlib_context_set_color_modifier(modifier);
 
@@ -281,6 +282,7 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Xi
 
     imlib_apply_color_modifier();
     imlib_free_color_modifier();
+    imlib_context_set_color_modifier(previous);
   }
 
   imlib_context_set_image(rootimg);

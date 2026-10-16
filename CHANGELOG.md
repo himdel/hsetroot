@@ -17,6 +17,7 @@
 
 ### Fixes
 
+- `-alpha` with an image broke later `-tint`/`-contrast`/`-brightness`/`-gamma` (and printed an imlib2 warning)
 - with multiple monitors, `-solid`, `-gradient` and manipulations after an image only affected the last monitor
 - Makefile - libraries go to `LDLIBS`, so the build works with `-Wl,--as-needed` and the `--no-as-needed` workaround is gone (packagers can drop theirs too)
 

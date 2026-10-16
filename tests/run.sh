@@ -185,5 +185,11 @@ run -center "$T/rb.png" -solid red
 is 10 10 255,0,0
 is 990 10 255,0,0
 
+t "-alpha with images keeps later color modifiers working"
+run -solid white -alpha 128 -contrast 2 -fill "$T/rb.png" -brightness -0.5 -solid green
+is 10 10 64,128,0
+grep -q Warning "$T/out" && ko "imlib warning: $(cat "$T/out")" || ok
+
+
 echo "$pass passed, $fail failed"
 [ $fail = 0 ]
