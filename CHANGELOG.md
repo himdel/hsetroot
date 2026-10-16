@@ -4,6 +4,7 @@
 
 ### Features
 
+- xsetroot-style bitmap backgrounds: `-bitmap file.xbm`, `-mod x y`, `-gray`/`-grey`, colored with `-fg`, `-bg`, `-rv`/`-reverse` - pixel-identical to xsetroot, except the colors are positional and go before the bitmap: `xsetroot -mod 16 16 -fg red` is `hsetroot -fg red -mod 16 16` (#25)
 - `--output NAME` - everything after it applies to just that monitor (images, `-solid`, `-gradient`, manipulations like `-fliph` or `-tint`), `--output all` switches back; e.g. `hsetroot --output eDP-1 --cover laptop.jpg --output HDMI-1 --cover tv.jpg` (#14)
 - `hsr-outputs --help`, unknown options are an error now
 - `--long` options: `--fill image.jpg` and `--fill=image.jpg`, the old `-fill image.jpg` keeps working (#13)

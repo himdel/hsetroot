@@ -1,5 +1,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
+#include <X11/Xutil.h>
 #include <Imlib2.h>
 #include <ctype.h>
 #include <errno.h>
@@ -40,6 +41,15 @@ static const Option options[] = {
   {"full", {"<image>"}, "Render an image maximum aspect"},
   {"extend", {"<image>"}, "Render an image max aspect and fill borders"},
   {"fill", {"<image>"}, "Render an image stretched"},
+  {NULL, {NULL}, "Bitmaps (as in xsetroot, tiled from the top left corner):"},
+  {"fg", {"<color>"}, "Foreground color for the following bitmaps (default black)"},
+  {"bg", {"<color>"}, "Background color for the following bitmaps (default white)"},
+  {"rv", {NULL}, "Swap the foreground and background colors"},
+  {"reverse", {NULL}, "Same as --rv"},
+  {"bitmap", {"<xbm>"}, "Render an X bitmap file tiled"},
+  {"mod", {"<x>", "<y>"}, "Render a grid pattern tiled, x and y are 1-16"},
+  {"gray", {NULL}, "Render a gray (checkerboard) pattern"},
+  {"grey", {NULL}, "Same as --gray"},
   {NULL, {NULL}, "Manipulations:"},
   {"tint", {"<color>"}, "Tint the current image"},
   {"blur", {"<radius>"}, "Blur the current image"},
@@ -64,6 +74,8 @@ typedef struct {
   const Option *opt;
   char *arg[2];
   Imlib_Image image;
+  unsigned char *bits;
+  unsigned int bitsW, bitsH;
 } Op;
 
 void
@@ -114,7 +126,7 @@ valid_arg(const char *kind, const char *arg)
     if (*arg == '-')
       return 0;
     strtoul(arg, &end, 0);
-  } else if (!strcmp(kind, "<radius>") || !strcmp(kind, "<distance>") || !strcmp(kind, "<0-255>")) {
+  } else if (!strcmp(kind, "<radius>") || !strcmp(kind, "<distance>") || !strcmp(kind, "<0-255>") || !strcmp(kind, "<x>") || !strcmp(kind, "<y>")) {
     l = strtol(arg, &end, 0);
     if (!strcmp(kind, "<0-255>") && (l < 0 || l > 255))
       return 0;
@@ -385,6 +397,35 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
   imlib_context_set_image(rootimg);
 }
 
+// tile a 1 bit per pixel X bitmap over the area, aligned to the root origin like xsetroot
+void
+draw_bitmap(const unsigned char *bits, int w, int h, Color fg, Color bg, Imlib_Image rootimg, Output *area)
+{
+  Imlib_Image tile = imlib_create_image(w, h);
+
+  imlib_context_set_image(tile);
+  imlib_image_set_has_alpha(fg.a < 255 || bg.a < 255);
+  DATA32 *data = imlib_image_get_data();
+  for (int y = 0; y < h; y++) {
+    for (int x = 0; x < w; x++) {
+      Color c = ((bits[y * ((w + 7) / 8) + x / 8] >> (x % 8)) & 1) ? fg : bg;
+      data[y * w + x] = (c.a << 24) | (c.r << 16) | (c.g << 8) | c.b;
+    }
+  }
+  imlib_image_put_back_data(data);
+
+  imlib_context_set_image(rootimg);
+  imlib_context_set_cliprect(area->x, area->y, area->width, area->height);
+  for (int y = area->y - area->y % h; y < area->y + area->height; y += h)
+    for (int x = area->x - area->x % w; x < area->x + area->width; x += w)
+      imlib_blend_image_onto_image(tile, 0, 0, 0, w, h, x, y, w, h);
+  imlib_context_set_cliprect(0, 0, 0, 0);
+
+  imlib_context_set_image(tile);
+  imlib_free_image();
+  imlib_context_set_image(rootimg);
+}
+
 Output *
 find_output(Output *outputs, int noutputs, const char *name)
 {
@@ -443,6 +484,11 @@ main(int argc, char **argv)
       }
       if (!strcmp(op->opt->args[j], "<image>") && !(op->image = imlib_load_image_immediately_without_cache(op->arg[j]))) {
         fprintf(stderr, "Bad image (%s)\n", op->arg[j]);
+        exit(1);
+      }
+      int hx, hy;
+      if (!strcmp(op->opt->args[j], "<xbm>") && XReadBitmapFileData(op->arg[j], &op->bitsW, &op->bitsH, &op->bits, &hx, &hy) != BitmapSuccess) {
+        fprintf(stderr, "Bad bitmap (%s)\n", op->arg[j]);
         exit(1);
       }
     }
@@ -541,6 +587,7 @@ main(int argc, char **argv)
 
     alpha = 255;
     Output *target = NULL;
+    const char *fg = "black", *bg = "white";
 
     for (int i = 0; i < nops; i++) {
       Op *op = &ops[i];
@@ -560,6 +607,39 @@ main(int argc, char **argv)
 
       if (!strcmp(name, "output")) {
         target = find_output(outputs, noutputs, op->arg[0]);
+      } else if (!strcmp(name, "fg")) {
+        fg = op->arg[0];
+      } else if (!strcmp(name, "bg")) {
+        bg = op->arg[0];
+      } else if (!strcmp(name, "rv") || !strcmp(name, "reverse")) {
+        const char *swap = fg;
+        fg = bg;
+        bg = swap;
+      } else if (!strcmp(name, "bitmap") || !strcmp(name, "mod") || !strcmp(name, "gray") || !strcmp(name, "grey")) {
+        // the built-in patterns are xsetroot's
+        unsigned char gray[] = { 0x01, 0x02 }, mod[32], *bits = gray;
+        int w = 2, h = 2;
+        Color f, b;
+
+        if (op->bits) {
+          bits = op->bits;
+          w = op->bitsW;
+          h = op->bitsH;
+        } else if (!strcmp(name, "mod")) {
+          int mx = strtol(op->arg[0], NULL, 0), my = strtol(op->arg[1], NULL, 0), line = 0;
+          bits = mod;
+          w = h = 16;
+          for (int j = 16; j--; )
+            line = (line << 1) | (mx <= 0 || j % mx == 0);
+          for (int j = 0; j < 16; j++) {
+            mod[j * 2] = (my <= 0 || j % my == 0) ? 0xff : line & 0xff;
+            mod[j * 2 + 1] = (my <= 0 || j % my == 0) ? 0xff : line >> 8;
+          }
+        }
+
+        parse_color(fg, &f, alpha);
+        parse_color(bg, &b, alpha);
+        draw_bitmap(bits, w, h, f, b, image, area);
       } else if (!strcmp(name, "alpha")) {
         alpha = strtol(op->arg[0], NULL, 0);
       } else if (!strcmp(name, "solid")) {

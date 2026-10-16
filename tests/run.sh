@@ -308,6 +308,29 @@ shot 1
 is 10 10 255,0,0
 export DISPLAY=$D
 
+t "bitmaps are the same as xsetroot's (#25)"
+printf '#define t_width 5\n#define t_height 3\nstatic char t_bits[] = {\n  0x01, 0x0A, 0x1F, };\n' >"$T/t.xbm"
+screen 203x101
+for args in "-gray" "-fg red -bg blue -grey" "-mod 3 5" "-fg green -mod 1 16" "-rv -mod 0 7" "-mod 17 2" "-fg yellow -bg navy -bitmap $T/t.xbm" "-fg red -rv -bitmap $T/t.xbm"; do
+  xsetroot $args
+  import -window root "$T/xsetroot.png"
+  run $args
+  [ "$(compare -metric AE "$T/xsetroot.png" "$T/root.png" null: 2>&1)" = "0 (0)" ] && ok || ko "differs from xsetroot: $args"
+done
+
+t "bitmaps with --output and -alpha"
+screen 1000x500 500x500+0+0 500x500+500+0
+run --output m1 -fg red -gray
+is 10 10 0,0,0
+is 500 0 255,0,0
+is 501 0 255,255,255
+run -solid blue -alpha 128 -fg red -bg red -gray
+is 10 10 128,0,127
+
+t "bad bitmap"
+run -bitmap "$T/rb.png"
+rc_is 1
+
 t "Xinerama fallback without RandR"
 XARGS="-extension RANDR +xinerama -screen 1 200x100x24" screen 400x100
 run -fill "$T/rb.png"
