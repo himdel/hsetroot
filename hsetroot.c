@@ -63,6 +63,7 @@ static const Option options[] = {
   {NULL, {NULL}, "Misc:"},
   {"alpha", {"<0-255>"}, "Adjust alpha level for colors and images"},
   {"write", {"<filename>"}, "Write current image to file"},
+  {"verbose", {NULL}, "Print which outputs images are drawn on"},
   {"help", {NULL}, "Show this help (also -h)"},
   {"version", {NULL}, "Show version"},
 };
@@ -113,6 +114,7 @@ usage(FILE *f, char *commandline)
 Display *display;
 int screen;
 int opt_root = false;
+int opt_verbose = false;
 unsigned long screen_mask = 0;
 
 int
@@ -200,6 +202,8 @@ parse_args(int argc, char **argv, Op *ops)
     } else if (!strcmp(name, "version")) {
       printf("hsetroot %s\n", VERSION);
       exit(0);
+    } else if (!strcmp(name, "verbose")) {
+      opt_verbose = true;
     } else if (!strcmp(name, "root")) {
       opt_root = true;
     } else if (!strcmp(name, "screens")) {
@@ -334,7 +338,8 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
 
   for (int i = 0; i < noutputs; i++) {
     Output o = outputs[i];
-    printf("output %s: size(%d, %d) pos(%d, %d)\n", o.name, o.width, o.height, o.x, o.y);
+    if (opt_verbose)
+      printf("output %s: size(%d, %d) pos(%d, %d)\n", o.name, o.width, o.height, o.x, o.y);
     imlib_context_set_cliprect(o.x, o.y, o.width, o.height);
 
     if (mode == Fill) {

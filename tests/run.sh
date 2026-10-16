@@ -398,6 +398,13 @@ t "-write"
 run -solid red -write "$T/w.png"
 [ -s "$T/w.png" ] && ok || ko "no file written"
 
+t "--verbose"
+screen 400x100
+run -fill "$T/rb.png"
+[ -s "$T/out" ] && ko "output without --verbose: $(cat "$T/out")" || ok
+run --verbose -fill "$T/rb.png"
+grep -q "^output screen: size(400, 100) pos(0, 0)" "$T/out" && ok || ko "no --verbose output: $(cat "$T/out")"
+
 t "--help and --version work without a display"
 DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
 
