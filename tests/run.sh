@@ -404,8 +404,21 @@ run -fill "$T/rb.png"
 [ -s "$T/out" ] && ko "output without --verbose: $(cat "$T/out")" || ok
 run --verbose -fill "$T/rb.png"
 grep -q "^output screen: size(400, 100) pos(0, 0)" "$T/out" && ok || ko "no --verbose output: $(cat "$T/out")"
+screen 1000x500 500x500+0+0 500x500+500+0
+run --verbose -add red -add blue -gradient 0 -fill "$T/rb.png" -bitmap "$T/t.xbm"
+[ "$(grep ^output "$T/out")" = "output m0: size(500, 500) pos(0, 0)
+output m1: size(500, 500) pos(500, 0)" ] && ok || ko "each output once: $(cat "$T/out")"
+for args in "--output m1 -solid red" "--output m1 -gray" "--output m1 -add red -add blue -gradient 0" "--output m1 -tint red" "--output m1 -fill $T/rb.png --output all"; do
+  run --verbose $args
+  [ "$(grep ^output "$T/out")" = "output m1: size(500, 500) pos(500, 0)" ] && ok || ko "only m1 for $args: $(cat "$T/out")"
+done
+run --verbose -root -solid red
+[ "$(grep ^output "$T/out")" = "output root: size(1000, 500) pos(0, 0)" ] && ok || ko "-root: $(cat "$T/out")"
+run --verbose --output m1 -alpha 128
+grep -q ^output "$T/out" && ko "nothing drawn, but: $(cat "$T/out")" || ok
 
 t "warnings for settings nothing uses"
+screen 400x100
 for args in "-gray -fg red" "-mod 2 2 -rv" "-solid red -alpha 128" "-add red -add blue" "-solid red --output screen"; do
   run $args
   rc_is 0

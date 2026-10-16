@@ -70,12 +70,14 @@ static const Option options[] = {
 
 #define NOPTIONS (sizeof(options) / sizeof(*options))
 
+#define DRAWS "solid gradient center cover tile full extend fill bitmap mod gray grey tint blur sharpen contrast brightness gamma flipv fliph flipd"
+
 // settings, and what uses them - to warn when nothing after a setting does
 static const char *uses[][2] = {
   {"fg bg rv reverse", "bitmap mod gray grey"},
   {"alpha", "solid add addd center cover tile full extend fill bitmap mod gray grey"},
   {"add addd", "gradient"},
-  {"output", "solid gradient center cover tile full extend fill bitmap mod gray grey tint blur sharpen contrast brightness gamma flipv fliph flipd"},
+  {"output", DRAWS},
 };
 
 // one parsed command line option, in order
@@ -370,8 +372,6 @@ draw_image(ImageMode mode, Imlib_Image image, int alpha, Imlib_Image rootimg, Ou
 
   for (int i = 0; i < noutputs; i++) {
     Output o = outputs[i];
-    if (opt_verbose)
-      printf("output %s: size(%d, %d) pos(%d, %d)\n", o.name, o.width, o.height, o.x, o.y);
     imlib_context_set_cliprect(o.x, o.y, o.width, o.height);
 
     if (mode == Fill) {
@@ -627,6 +627,8 @@ main(int argc, char **argv)
 
     alpha = 255;
     Output *target = NULL;
+    bool changed[noutputs + 1]; // +1, a VLA can't be empty
+    memset(changed, 0, sizeof(changed));
     const char *fg = "black", *bg = "white";
 
     for (int i = 0; i < nops; i++) {
@@ -644,6 +646,10 @@ main(int argc, char **argv)
       bool crop = target && (!strcmp(name, "blur") || !strcmp(name, "sharpen") || !strncmp(name, "flip", 4));
       if (crop)
         imlib_context_set_image(imlib_create_cropped_image(target->x, target->y, target->width, target->height));
+
+      if (in_list(DRAWS, name))
+        for (int j = 0; j < noutputs; j++)
+          changed[j] |= !target || target == &outputs[j];
 
       if (!strcmp(name, "output")) {
         target = find_output(outputs, noutputs, op->arg[0]);
@@ -757,6 +763,10 @@ main(int argc, char **argv)
         imlib_context_set_image(image);
       }
     }
+
+    for (int i = 0; opt_verbose && i < noutputs; i++)
+      if (changed[i])
+        printf("output %s: size(%d, %d) pos(%d, %d)\n", outputs[i].name, outputs[i].width, outputs[i].height, outputs[i].x, outputs[i].y);
 
     if (modifier != NULL) {
       imlib_context_set_color_modifier(modifier);
