@@ -24,7 +24,6 @@ typedef struct {
 static const Option options[] = {
   {NULL, {NULL}, "Generic Options:"},
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
-  {"screen", {"<int>"}, "Use this X screen instead of the one from $DISPLAY"},
   {"screens", {"<int>"}, "Set a screenmask to use (1 = screen 0, 2 = screen 1, 3 = both, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
   {NULL, {NULL}, "Gradients:"},
@@ -191,13 +190,6 @@ parse_args(int argc, char **argv, Op *ops)
       exit(0);
     } else if (!strcmp(name, "root")) {
       opt_root = true;
-    } else if (!strcmp(name, "screen")) {
-      long n = strtol(op.arg[0], NULL, 0);
-      screen_mask = (n >= 0 && n < 64) ? 1UL << n : 0;
-      if (!screen_mask) {
-        fprintf(stderr, "Bad screen (%s)\n", op.arg[0]);
-        exit(1);
-      }
     } else if (!strcmp(name, "screens")) {
       screen_mask = strtoul(op.arg[0], NULL, 0);
       if (!screen_mask) {

@@ -4,7 +4,6 @@
 
 ### Features
 
-- `--screen N` to pick an X screen (#24)
 - `--output NAME` - everything after it applies to just that monitor (images, `-solid`, `-gradient`, manipulations like `-fliph` or `-tint`), `--output all` switches back; e.g. `hsetroot --output eDP-1 --cover laptop.jpg --output HDMI-1 --cover tv.jpg` (#14)
 - `hsr-outputs --help`, unknown options are an error now
 - `--long` options: `--fill image.jpg` and `--fill=image.jpg`, the old `-fill image.jpg` keeps working (#13)

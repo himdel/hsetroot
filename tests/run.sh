@@ -244,7 +244,7 @@ DISPLAY= ./hsr-outputs --help | grep -q Syntax && ok || ko "no help"
 [ $? = 1 ] && ok || ko "bad option doesn't exit 1"
 [ "$(./hsr-outputs --text)" = "$(./hsr-outputs)" ] && ok || ko "--text differs"
 
-t "X screens - default from \$DISPLAY, --screen, -screens (#24)"
+t "X screens - default from \$DISPLAY, -screens (#24)"
 XARGS="-screen 1 200x100x24" screen 400x100
 XARGS=
 D=$DISPLAY
@@ -257,7 +257,7 @@ shot 0
 is 10 10 255,0,0
 shot 1
 is 10 10 0,0,255
-DISPLAY=$D.0 ./hsetroot --screen 1 -solid green
+DISPLAY=$D.0 ./hsetroot -screens 2 -solid green
 shot 0
 is 10 10 255,0,0
 shot 1
@@ -269,7 +269,7 @@ shot 0
 is 10 10 255,255,255
 shot 1
 is 10 10 255,255,255
-for args in "--screen 2" "--screen -1" "-screens 4"; do
+for args in "--screen 1" "-screens 4"; do
   run $args -solid red
   rc_is 1
 done
