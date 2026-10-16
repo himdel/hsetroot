@@ -26,6 +26,7 @@ See `hsetroot --help` or `man hsetroot` for all of them:
  * **bitmaps** like xsetroot - `--bitmap file.xbm`, `--mod x y`, `--gray` with `--fg`, `--bg`, `--rv` (same pixels as xsetroot, but the colors go before the bitmap)
  * **manipulations** - `--tint`, `--blur`, `--sharpen`, `--contrast`, `--brightness`, `--gamma`, `--flipv`, `--fliph`, `--flipd`
  * `--write file.png` saves the result too
+ * `--verbose` prints which monitors were drawn on, `--help`, `--version`
 
 Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb:r/g/b` or an X color name.
 
