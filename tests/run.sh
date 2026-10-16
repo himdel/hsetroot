@@ -398,6 +398,7 @@ t "man page lists every option"
 for o in $(./hsetroot --help | sed -n 's/^ --\([a-z]*\).*/\1/p'); do
   grep -q "fB\\\\-\\\\-$o\\\\fR" hsetroot.1 && ok || ko "--$o missing in hsetroot.1"
 done
+grep -Fq '\fB\-\-screen\fR' hsetroot.1 && ko "removed --screen still in hsetroot.1" || ok
 
 t "long options (#13)"
 screen 400x100

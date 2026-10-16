@@ -35,16 +35,16 @@ Most setups have just one X screen, with any number of monitors.
 \fB\-\-root\fR
 Treat multiple displays as one big screen (ignore xrandr outputs).
 .TP
-\fB\-\-screen\fR \fIint\fR
-Use this X screen instead of the one from \fB$DISPLAY\fR.
-.TP
 \fB\-\-screens\fR \fIint\fR
-Draw on several X screens, as a bitmask (1 = screen 0, 2 = screen 1, 3 = both, ...).
+Draw on several X screens, as a bitmask (1 = screen 0, 2 = screen 1, 3 = both;
+0 is an error).
 .TP
 \fB\-\-output\fR \fIname\fR
 Draw only on this output from now on, \fBall\fR for every output again.
 Names are the ones from \fBxrandr \-\-listmonitors\fR or \fBhsr\-outputs\fR.
 Can't be used with \fB\-\-root\fR, except for \fBall\fR.
+Settings such as \fB\-\-alpha\fR and colors added with \fB\-\-add\fR carry
+over to the next output; use \fB\-\-clear\fR for a new gradient.
 .SS "Gradients"
 .TP
 \fB\-\-add\fR \fIcolor\fR
@@ -99,7 +99,9 @@ Swap the foreground and background colors.
 Render an X bitmap file tiled.
 .TP
 \fB\-\-mod\fR \fIx\fR \fIy\fR
-Render a grid pattern tiled, x and y are 1\-16.
+Render a tiled grid with vertical lines \fIx\fR pixels apart and horizontal
+lines \fIy\fR pixels apart. The pattern repeats every 16 pixels; 0 fills
+that direction, and values above 16 give one line per tile.
 .TP
 \fB\-\-gray\fR, \fB\-\-grey\fR
 Render a gray (checkerboard) pattern.
