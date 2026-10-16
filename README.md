@@ -47,11 +47,12 @@ X screens (the `.1` in `DISPLAY=:0.1` - rare, not the same as monitors): hsetroo
 ## Building
 
 needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, libxrandr-dev, pkg-config, make
+additionaly, running tests needs xvfb, x11-xserver-utils, x11-utils, imagemagick
 
 ```sh
 make
 make install                 # PREFIX=/usr/local, DESTDIR= supported
-make check                   # tests, need xvfb, x11-xserver-utils, x11-utils, imagemagick
+make check                   # tests
 ```
 
 imlib2 < 1.12.6 renders gradients wrong when the screen is larger than 4096 pixels in either dimension (and on some 4K setups), so the Makefile refuses older versions. Use `make IMLIB2_MIN=0` to build anyway.
