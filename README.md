@@ -1,11 +1,11 @@
-hsetroot - imlib2-based wallpaper changer
+### hsetroot - imlib2-based wallpaper changer
 
 Composes a wallpaper for X out of solid colors, gradients, images and X bitmaps, optionally manipulates it, and sets it as the root window background - including the `_XROOTPMAP_ID` / `ESETROOT_PMAP_ID` properties compositors (picom) and pseudo-transparent terminals use.
 
 original author: `Hyriand <hyriand@thegraveyard.org>` (2003)  
-licence: GPL2
+licence: GPL-2
 
-## Usage
+#### Usage
 
 ```sh
 hsetroot --cover wallpaper.jpg                              # scaled to cover each monitor
@@ -34,7 +34,7 @@ Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb:r/g/b` or an X color name.
 
 Any error (bad image, bad color, unknown option or output, ...) exits with 1 and leaves the background alone, including on multiple X screens. Numeric arguments reject out-of-range values and non-finite angles or amounts. Failed `--write` reports the imlib2 error.
 
-## Multiple monitors
+#### Multiple monitors
 
 Images and gradients go on each monitor, as listed by `xrandr --listmonitors` (so monitors made with `xrandr --setmonitor` count too). On servers without RandR 1.5 it falls back to Xinerama, then to the whole screen.
 
@@ -45,9 +45,10 @@ Images and gradients go on each monitor, as listed by `xrandr --listmonitors` (s
 
 X screens (the `.1` in `DISPLAY=:0.1` - rare, not the same as monitors): hsetroot draws on the screen from `$DISPLAY`. Set `DISPLAY=:0.1` for screen 1, or use `--screens MASK` for several, a bit per screen (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, 7 = screens 0 to 2, ...; 0 is an error).
 
-## Building
+#### Building
 
 needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, libxrandr-dev, pkg-config, make
+
 additionally, running tests needs xvfb, x11-xserver-utils, x11-utils, imagemagick
 
 ```sh
@@ -58,7 +59,7 @@ make check                   # tests
 
 imlib2 < 1.12.6 renders gradients wrong when the screen is larger than 4096 pixels in either dimension (and on some 4K setups), so the Makefile refuses older versions. Use `make IMLIB2_MIN=0` to build anyway.
 
-## History
+#### History
 
 This is hsetroot 1.0.2 by Hyriand, with:
 
