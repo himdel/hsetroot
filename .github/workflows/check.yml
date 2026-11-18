@@ -12,6 +12,7 @@ jobs:
     container: debian:testing
     steps:
       - uses: actions/checkout@v5
-      - run: apt-get update && apt-get install -y --no-install-recommends build-essential pkg-config libimlib2-dev libx11-dev libxinerama-dev libxrandr-dev xvfb x11-xserver-utils x11-utils imagemagick
+      - run: apt-get update && apt-get install -y --no-install-recommends build-essential pkg-config libimlib2-dev libx11-dev libxinerama-dev libxrandr-dev libwayland-dev wayland-protocols xvfb x11-xserver-utils x11-utils imagemagick
       - run: make
       - run: make check
+      - run: make clean && make WAYLAND=0

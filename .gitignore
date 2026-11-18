@@ -3,3 +3,4 @@
 *.o
 hsetroot
 hsr-outputs
+*-protocol.[ch]

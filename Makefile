@@ -39,9 +39,30 @@ LDLIBS+=$(shell $(PKG_CONFIG) xinerama --libs)
 CFLAGS+=$(shell $(PKG_CONFIG) xrandr --cflags)
 LDLIBS+=$(shell $(PKG_CONFIG) xrandr --libs)
 
+# Wayland (wlr-layer-shell compositors), when libwayland-client is there, WAYLAND=0 to skip
+WAYLAND?=$(shell $(PKG_CONFIG) --exists wayland-client wayland-protocols && echo 1)
+ifeq ($(WAYLAND),1)
+CPPFLAGS+=-DWAYLAND
+CFLAGS+=$(shell $(PKG_CONFIG) wayland-client --cflags)
+LDLIBS+=$(shell $(PKG_CONFIG) wayland-client --libs)
+WAYLAND_OBJS=wayland.o wlr-layer-shell-unstable-v1-protocol.o xdg-shell-protocol.o xdg-output-unstable-v1-protocol.o
+WLP=$(shell $(PKG_CONFIG) --variable=pkgdatadir wayland-protocols)
+endif
+
 all: hsetroot hsr-outputs
 
-hsetroot: hsetroot.o outputs.o
+wayland.o: wlr-layer-shell-unstable-v1-client-protocol.h xdg-output-unstable-v1-client-protocol.h
+
+vpath xdg-shell.xml $(WLP)/stable/xdg-shell
+vpath xdg-output-unstable-v1.xml $(WLP)/unstable/xdg-output
+
+%-client-protocol.h: %.xml
+	wayland-scanner client-header $< $@
+
+%-protocol.c: %.xml
+	wayland-scanner private-code $< $@
+
+hsetroot: hsetroot.o outputs.o $(WAYLAND_OBJS)
 
 hsr-outputs: hsr-outputs.o outputs.o
 
@@ -54,4 +75,4 @@ check: hsetroot hsr-outputs
 	sh tests/run.sh
 
 clean:
-	rm -f *.o hsetroot hsr-outputs
+	rm -f *.o hsetroot hsr-outputs *-protocol.[ch]

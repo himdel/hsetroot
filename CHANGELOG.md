@@ -5,10 +5,12 @@
 ### Features
 
 - `--size WxH` renders without a display and without touching the screen, for `--write`: `hsetroot --size 1920x1080 --solid navy --write wall.png`
+- Wayland support on wlr-layer-shell compositors (sway, Hyprland, river, ...) - used when `$WAYLAND_DISPLAY` is set, hsetroot then keeps running in the foreground; GNOME and KDE Plasma not yet
 
 ### Changes
 
-- packagers: color names without an X server (`--size`) are read from `/usr/share/X11/rgb.txt` at runtime (Debian x11-common, Arch xorg-rgb), `make RGB_TXT=..` for another path
+- packagers: color names without an X server (`--size`, Wayland) are read from `/usr/share/X11/rgb.txt` at runtime (Debian x11-common, Arch xorg-rgb), `make RGB_TXT=..` for another path
+- packagers: optional new build dependencies libwayland-dev and wayland-protocols (`make WAYLAND=0` to build without)
 
 ## 1.1.0 - 2026-11-18
 
