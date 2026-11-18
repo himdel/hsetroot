@@ -1,6 +1,7 @@
 #!/bin/sh
 # regression tests, run in Xvfb - needs xvfb, xrandr, xprop, imagemagick
 cd "$(dirname "$0")/.." || exit 1
+unset WAYLAND_DISPLAY  # these test the X backend
 T=$(mktemp -d)
 XPID=
 trap 'stop; rm -rf "$T"' EXIT

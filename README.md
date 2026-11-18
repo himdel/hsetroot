@@ -28,7 +28,7 @@ See `hsetroot --help` or `man hsetroot` for all of them:
  * `--write file.png` saves the result too; with `--size WxH` hsetroot only renders the file, without a display or touching the screen: `hsetroot --size 1920x1080 --add navy --add black --gradient 0 --write wall.png`
  * `--verbose` prints which monitors were drawn on, `--help`, `--version`
 
-Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb:r/g/b` or an X color name. Without an X server (`--size`), names come from `/usr/share/X11/rgb.txt` (`make RGB_TXT=..` for another place), and X's rare Xcms forms (`rgbi:`, `CIEXYZ:`, `TekHVC:`, ...) aren't supported.
+Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb:r/g/b` or an X color name. Without an X server (`--size`, Wayland), names come from `/usr/share/X11/rgb.txt` (`make RGB_TXT=..` for another place), and X's rare Xcms forms (`rgbi:`, `CIEXYZ:`, `TekHVC:`, ...) aren't supported.
 
 `--mod 3 5` draws foreground vertical lines 3 pixels apart and horizontal lines 5 pixels apart; the gaps use the background color. The pattern repeats every 16 pixels: 0 fills that direction, and values above 16 give one line per tile.
 
@@ -45,9 +45,22 @@ Images and gradients go on each monitor, as listed by `xrandr --listmonitors` (s
 
 X screens (the `.1` in `DISPLAY=:0.1` - rare, not the same as monitors): hsetroot draws on the screen from `$DISPLAY`. Set `DISPLAY=:0.1` for screen 1, or use `--screens MASK` for several, a bit per screen (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, 7 = screens 0 to 2, ...; 0 is an error).
 
+#### Wayland
+
+When `$WAYLAND_DISPLAY` is set, hsetroot draws on Wayland instead of X, on compositors with wlr-layer-shell (sway, Hyprland, river, labwc, niri, wayfire, COSMIC, KWin without Plasma). GNOME and KDE Plasma aren't supported yet.
+
+ * the same options work, `--output` takes the compositor's output names (`swaymsg -t get_outputs`)
+ * hsetroot keeps running - the wallpaper goes away when it exits, so start it in the background: `hsetroot --cover wall.jpg &`. A second run doesn't replace the first yet, kill the old one.
+ * images are drawn at each output's physical pixel size, so they stay sharp on scaled outputs
+ * color names come from `/usr/share/X11/rgb.txt`, no X server needed (see colors above)
+ * `--screens` has no effect; `WAYLAND_DISPLAY= hsetroot ...` uses X (Xwayland) instead
+ * outputs plugged in later stay black until hsetroot is run again
+
 #### Building
 
 needs libimlib2-dev (>= 1.12.6), libx11-dev, libxinerama-dev, libxrandr-dev, pkg-config, make
+
+Wayland support is built when libwayland-dev and wayland-protocols are there (`make WAYLAND=0` to skip it)
 
 additionally, running tests needs xvfb, x11-xserver-utils, x11-utils, imagemagick
 

@@ -736,9 +736,15 @@ main(int argc, char **argv)
   Op *ops = calloc(argc, sizeof(Op));
   int nops = parse_args(argc, argv, ops);
 
-  if (size_w) {
+#ifdef WAYLAND
+  bool wayland = !size_w && getenv("WAYLAND_DISPLAY") && *getenv("WAYLAND_DISPLAY");
+#else
+  bool wayland = false;
+#endif
+
+  if (size_w || wayland) {
     if (screen_mask)
-      fprintf(stderr, "Warning: --screens has no effect with --size\n");
+      fprintf(stderr, "Warning: --screens has no effect %s\n", wayland ? "on Wayland" : "with --size");
   } else if (!(/* global */ display = XOpenDisplay(NULL))) {
     fprintf(stderr, "Cannot open X display!\n");
     exit(123);
@@ -804,6 +810,22 @@ main(int argc, char **argv)
     compose(ops, nops, &area, 1, size_w, size_h, scale);
     return 0;
   }
+
+#ifdef WAYLAND
+  if (wayland) {
+    int noutputs, w, h;
+    Output *outputs = wl_query_outputs(&noutputs, &w, &h);
+    Output root = { "root", 0, 0, w, h };
+
+    if (opt_root) {
+      outputs = &root;
+      noutputs = 1;
+    }
+    check_outputs(ops, nops, outputs, noutputs, need_outputs);
+    imlib_context_set_image(compose(ops, nops, outputs, noutputs, w, h, scale));
+    wl_show(imlib_image_get_data_for_reading_only(), w);
+  }
+#endif
 
   // Check every selected screen before drawing on any of them.
   if (!opt_root && (screen_mask & (screen_mask - 1))) {
