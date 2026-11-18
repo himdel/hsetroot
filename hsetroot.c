@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "outputs.h"
 
 
@@ -308,6 +309,53 @@ typedef struct {
   int r, g, b, a;
 } Color;
 
+// XParseColor's #rgb and rgb:r/g/b forms and rgb.txt names, without an X server
+int
+parse_color_nox(const char *arg, XColor *color)
+{
+  unsigned short *rgb[3] = { &color->red, &color->green, &color->blue };
+  size_t n = strlen(arg + 1) / 3;
+  char line[128], *end;
+  int r, g, b, len;
+
+  if (arg[0] == '#') {
+    if (n < 1 || n > 4 || strlen(arg + 1) != 3 * n || strspn(arg + 1, "0123456789abcdefABCDEF") != 3 * n)
+      return 0;
+    for (int i = 0; i < 3; i++) {
+      char part[5] = "";
+      memcpy(part, arg + 1 + i * n, n);
+      *rgb[i] = strtoul(part, NULL, 16) << (16 - 4 * n);
+    }
+    return 1;
+  }
+
+  if (!strncasecmp(arg, "rgb:", 4)) {
+    arg += 4;
+    for (int i = 0; i < 3; i++, arg = end + 1) {
+      unsigned long v = strtoul(arg, &end, 16);
+      len = end - arg;
+      if (!isxdigit((unsigned char) *arg) || len > 4 || *end != (i < 2 ? '/' : 0))
+        return 0;
+      *rgb[i] = v * 65535 / ((1UL << 4 * len) - 1);
+    }
+    return 1;
+  }
+
+  FILE *f = fopen(RGB_TXT, "r");
+  int found = 0;
+  while (f && !found && fgets(line, sizeof(line), f)) {
+    line[strcspn(line, "\r\n")] = 0;
+    if ((found = sscanf(line, "%d %d %d %n", &r, &g, &b, &len) == 3 && !strcasecmp(line + len, arg))) {
+      color->red = r * 257;
+      color->green = g * 257;
+      color->blue = b * 257;
+    }
+  }
+  if (f)
+    fclose(f);
+  return found;
+}
+
 int
 parse_color(const char *arg, Color *c, int default_alpha)
 {
@@ -327,7 +375,7 @@ parse_color(const char *arg, Color *c, int default_alpha)
     arg = buf;
   }
 
-  if (!XParseColor(display, DefaultColormap(display, screen), arg, &color))
+  if (display ? !XParseColor(display, DefaultColormap(display, screen), arg, &color) : !parse_color_nox(arg, &color))
     return 0;
 
   c->r = color.red >> 8;
