@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "outputs.h"
 
 
@@ -27,6 +28,7 @@ static const Option options[] = {
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
   {"screens", {"<int>"}, "X screen bitmask (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
+  {"size", {"<WxH>"}, "Draw on a WxH image instead of the screen, no display needed (for --write)"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},
   {"addd", {"<color>", "<distance>"}, "Add color to range using custom distance"},
@@ -126,6 +128,7 @@ int screen;
 int opt_root = false;
 int opt_verbose = false;
 unsigned long screen_mask = 0;
+int size_w = 0, size_h = 0;
 
 int
 valid_arg(const char *kind, const char *arg)
@@ -146,6 +149,9 @@ valid_arg(const char *kind, const char *arg)
       return 0;
     if (!strcmp(kind, "<distance>") && (l < INT_MIN || l > INT_MAX))
       return 0;
+  } else if (!strcmp(kind, "<WxH>")) {
+    int w, h, n = 0;
+    return sscanf(arg, "%dx%d%n", &w, &h, &n) == 2 && !arg[n] && w > 0 && h > 0;
   } else if (!strcmp(kind, "<amount>") || !strcmp(kind, "<angle>")) {
     if (!isfinite(strtod(arg, &end)))
       return 0;
@@ -227,6 +233,8 @@ parse_args(int argc, char **argv, Op *ops)
       opt_verbose = true;
     } else if (!strcmp(name, "root")) {
       opt_root = true;
+    } else if (!strcmp(name, "size")) {
+      sscanf(op.arg[0], "%dx%d", &size_w, &size_h);
     } else if (!strcmp(name, "screens")) {
       screen_mask = strtoul(op.arg[0], NULL, 0);
       if (!screen_mask) {
@@ -308,10 +316,56 @@ typedef struct {
   int r, g, b, a;
 } Color;
 
+// XParseColor's #rgb and rgb:r/g/b forms and rgb.txt names, without an X server
+int
+parse_color_nox(const char *arg, XColor *color)
+{
+  unsigned short *rgb[3] = { &color->red, &color->green, &color->blue };
+  size_t n = strlen(arg + 1) / 3;
+  char line[128], *end;
+  int r, g, b, len;
+
+  if (arg[0] == '#') {
+    if (n < 1 || n > 4 || strlen(arg + 1) != 3 * n || strspn(arg + 1, "0123456789abcdefABCDEF") != 3 * n)
+      return 0;
+    for (int i = 0; i < 3; i++) {
+      char part[5] = "";
+      memcpy(part, arg + 1 + i * n, n);
+      *rgb[i] = strtoul(part, NULL, 16) << (16 - 4 * n);
+    }
+    return 1;
+  }
+
+  if (!strncasecmp(arg, "rgb:", 4)) {
+    arg += 4;
+    for (int i = 0; i < 3; i++, arg = end + 1) {
+      unsigned long v = strtoul(arg, &end, 16);
+      len = end - arg;
+      if (!isxdigit((unsigned char) *arg) || len > 4 || *end != (i < 2 ? '/' : 0))
+        return 0;
+      *rgb[i] = v * 65535 / ((1UL << 4 * len) - 1);
+    }
+    return 1;
+  }
+
+  FILE *f = fopen(RGB_TXT, "r");
+  int found = 0;
+  while (f && !found && fgets(line, sizeof(line), f)) {
+    line[strcspn(line, "\r\n")] = 0;
+    if ((found = sscanf(line, "%d %d %d %n", &r, &g, &b, &len) == 3 && !strcasecmp(line + len, arg))) {
+      color->red = r * 257;
+      color->green = g * 257;
+      color->blue = b * 257;
+    }
+  }
+  if (f)
+    fclose(f);
+  return found;
+}
+
 int
 parse_color(const char *arg, Color *c, int default_alpha)
 {
-  Colormap colormap = DefaultColormap(display, screen);
   XColor color;
   char buf[8];
 
@@ -328,8 +382,7 @@ parse_color(const char *arg, Color *c, int default_alpha)
     arg = buf;
   }
 
-  Status ret = XParseColor(display, colormap, arg, &color);
-  if (ret == 0)
+  if (display ? !XParseColor(display, DefaultColormap(display, screen), arg, &color) : !parse_color_nox(arg, &color))
     return 0;
 
   c->r = color.red >> 8;
@@ -486,30 +539,216 @@ apply_color_modifier(Output *target)
   imlib_free_color_modifier();
 }
 
+// fail before drawing on an --output NAME that isn't there, or on no outputs at all
+void
+check_outputs(Op *ops, int nops, Output *outputs, int noutputs, bool need_outputs)
+{
+  if (!noutputs && need_outputs) {
+    fprintf(stderr, "No outputs found (all turned off?), use -root to draw on the whole screen\n");
+    exit(1);
+  }
+  for (int i = 0; i < nops; i++) {
+    if (!strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all") && !find_output(outputs, noutputs, ops[i].arg[0])) {
+      fprintf(stderr, "Unknown output (%s), see hsr-outputs\n", ops[i].arg[0]);
+      exit(1);
+    }
+  }
+}
+
+// run the ops on a new black width x height image
+Imlib_Image
+compose(Op *ops, int nops, Output *outputs, int noutputs, int width, int height, int scale)
+{
+  imlib_context_set_color_range(imlib_create_color_range());
+
+  Imlib_Image image = imlib_create_image(width, height);
+  imlib_context_set_image(image);
+
+  imlib_context_set_color(0, 0, 0, 255);
+  imlib_image_fill_rectangle(0, 0, width, height);
+
+  imlib_context_set_dither(1);
+  imlib_context_set_blend(1);
+
+  int alpha = 255;
+  Imlib_Color_Modifier modifier = NULL;
+  Output root = { "root", 0, 0, width, height };
+  Output *target = NULL;
+  bool changed[noutputs + 1]; // +1, a VLA can't be empty
+  memset(changed, 0, sizeof(changed));
+  const char *fg = "black", *bg = "white";
+
+  for (int i = 0; i < nops; i++) {
+    Op *op = &ops[i];
+    const char *name = op->opt->name;
+    Output *area = target ? target : &root;
+    Color c;
+
+    if (modifier != NULL)
+      apply_color_modifier(target);
+    modifier = imlib_create_color_modifier();
+    imlib_context_set_color_modifier(modifier);
+
+    // these work on the whole image, give them just the target output's part
+    bool crop = target && (!strcmp(name, "blur") || !strcmp(name, "sharpen") || !strncmp(name, "flip", 4));
+    if (crop)
+      imlib_context_set_image(imlib_create_cropped_image(target->x, target->y, target->width, target->height));
+
+    if (in_list(DRAWS, name))
+      for (int j = 0; j < noutputs; j++)
+        changed[j] |= !target || target == &outputs[j];
+
+    if (!strcmp(name, "output")) {
+      target = find_output(outputs, noutputs, op->arg[0]);
+    } else if (!strcmp(name, "fg")) {
+      fg = op->arg[0];
+    } else if (!strcmp(name, "bg")) {
+      bg = op->arg[0];
+    } else if (!strcmp(name, "rv") || !strcmp(name, "reverse")) {
+      const char *swap = fg;
+      fg = bg;
+      bg = swap;
+    } else if (!strcmp(name, "bitmap") || !strcmp(name, "mod") || !strcmp(name, "gray") || !strcmp(name, "grey")) {
+      // the built-in patterns are xsetroot's
+      unsigned char gray[] = { 0x01, 0x02 }, mod[32], *bits = gray;
+      int w = 2, h = 2;
+      Color f, b;
+
+      if (op->bits) {
+        bits = op->bits;
+        w = op->bitsW;
+        h = op->bitsH;
+      } else if (!strcmp(name, "mod")) {
+        int mx = strtol(op->arg[0], NULL, 0), my = strtol(op->arg[1], NULL, 0), line = 0;
+        bits = mod;
+        w = h = 16;
+        for (int j = 16; j--; )
+          line = (line << 1) | (mx <= 0 || j % mx == 0);
+        for (int j = 0; j < 16; j++) {
+          mod[j * 2] = (my <= 0 || j % my == 0) ? 0xff : line & 0xff;
+          mod[j * 2 + 1] = (my <= 0 || j % my == 0) ? 0xff : line >> 8;
+        }
+      }
+
+      parse_color(fg, &f, alpha);
+      parse_color(bg, &b, alpha);
+      draw_bitmap(bits, w, h, f, b, image, area);
+    } else if (!strcmp(name, "alpha")) {
+      alpha = strtol(op->arg[0], NULL, 0);
+    } else if (!strcmp(name, "solid")) {
+      parse_color(op->arg[0], &c, alpha);
+      imlib_context_set_color(c.r, c.g, c.b, c.a);
+      imlib_image_fill_rectangle(area->x, area->y, area->width, area->height);
+    } else if (!strcmp(name, "clear")) {
+      imlib_free_color_range();
+      imlib_context_set_color_range(imlib_create_color_range());
+    } else if (!strcmp(name, "add") || !strcmp(name, "addd")) {
+      parse_color(op->arg[0], &c, alpha);
+      imlib_context_set_color(c.r, c.g, c.b, c.a);
+      imlib_add_color_to_color_range(scale * (op->arg[1] ? strtol(op->arg[1], NULL, 0) : 1));
+    } else if (!strcmp(name, "gradient")) {
+      for (int j = 0; j < (target ? 1 : noutputs); j++) {
+        Output *o = target ? target : &outputs[j];
+        imlib_image_fill_color_range_rectangle(o->x, o->y, o->width, o->height, strtod(op->arg[0], NULL));
+      }
+    } else if (op->image) {
+      ImageMode mode = !strcmp(name, "fill") ? Fill
+                     : !strcmp(name, "full") ? Full
+                     : !strcmp(name, "extend") ? Xtend
+                     : !strcmp(name, "tile") ? Tile
+                     : !strcmp(name, "center") ? Center
+                     : Cover;
+      draw_image(mode, op->image, alpha, image, target ? target : outputs, target ? 1 : noutputs);
+    } else if (!strcmp(name, "tint")) {
+      DATA8 r[256], g[256], b[256], a[256];
+
+      parse_color(op->arg[0], &c, 255);
+      imlib_get_color_modifier_tables(r, g, b, a);
+
+      for (int j = 0; j < 256; j++) {
+        r[j] = (DATA8) (((double) r[j] / 255.0) * (double) c.r);
+        g[j] = (DATA8) (((double) g[j] / 255.0) * (double) c.g);
+        b[j] = (DATA8) (((double) b[j] / 255.0) * (double) c.b);
+      }
+
+      imlib_set_color_modifier_tables(r, g, b, a);
+    } else if (!strcmp(name, "blur")) {
+      imlib_image_blur(strtol(op->arg[0], NULL, 0));
+    } else if (!strcmp(name, "sharpen")) {
+      imlib_image_sharpen(strtol(op->arg[0], NULL, 0));
+    } else if (!strcmp(name, "contrast")) {
+      imlib_modify_color_modifier_contrast(strtod(op->arg[0], NULL));
+    } else if (!strcmp(name, "brightness")) {
+      imlib_modify_color_modifier_brightness(strtod(op->arg[0], NULL));
+    } else if (!strcmp(name, "gamma")) {
+      imlib_modify_color_modifier_gamma(strtod(op->arg[0], NULL));
+    } else if (!strcmp(name, "flipv")) {
+      imlib_image_flip_vertical();
+    } else if (!strcmp(name, "fliph")) {
+      imlib_image_flip_horizontal();
+    } else if (!strcmp(name, "flipd")) {
+      imlib_image_flip_diagonal();
+    } else if (!strcmp(name, "write")) {
+      int err = 0;
+      imlib_save_image_with_errno_return(op->arg[0], &err);
+      if (err) {
+        fprintf(stderr, "Can't write (%s): %s\n", op->arg[0], imlib_strerror(err));
+        exit(1);
+      }
+    }
+
+    if (crop) {
+      Imlib_Image part = imlib_context_get_image();
+      int w = imlib_image_get_width(), h = imlib_image_get_height();
+
+      imlib_context_set_image(image);
+      imlib_context_set_blend(0);
+      imlib_blend_image_onto_image(part, 1, 0, 0, w, h, target->x, target->y, target->width, target->height);
+      imlib_context_set_blend(1);
+      imlib_context_set_image(part);
+      imlib_free_image();
+      imlib_context_set_image(image);
+    }
+  }
+
+  for (int i = 0; opt_verbose && i < noutputs; i++)
+    if (changed[i])
+      printf("output %s: size(%d, %d) pos(%d, %d)\n", outputs[i].name, outputs[i].width, outputs[i].height, outputs[i].x, outputs[i].y);
+
+  if (modifier != NULL) {
+    imlib_context_set_color_modifier(modifier);
+    apply_color_modifier(target);
+  }
+  imlib_free_color_range();
+
+  return image;
+
+}
+
 int
 main(int argc, char **argv)
 {
   Visual *vis;
   Colormap cm;
   Imlib_Image image;
-  int width, height, depth, alpha;
+  int width, height, depth;
   Pixmap pixmap;
-  Imlib_Color_Modifier modifier = NULL;
   Op *ops = calloc(argc, sizeof(Op));
   int nops = parse_args(argc, argv, ops);
 
-  /* global */ display = XOpenDisplay(NULL);
-
-  if (!display) {
+  if (size_w) {
+    if (screen_mask)
+      fprintf(stderr, "Warning: --screens has no effect with --size\n");
+  } else if (!(/* global */ display = XOpenDisplay(NULL))) {
     fprintf(stderr, "Cannot open X display!\n");
     exit(123);
-  }
-
-  if (!screen_mask)
-    screen_mask = 1UL << DefaultScreen(display);
-  if (!(screen_mask & ((1UL << ScreenCount(display)) - 1))) {
-    fprintf(stderr, "No such screen, there are %d\n", ScreenCount(display));
-    exit(1);
+  } else {
+    if (!screen_mask)
+      screen_mask = 1UL << DefaultScreen(display);
+    if (!(screen_mask & ((1UL << ScreenCount(display)) - 1))) {
+      fprintf(stderr, "No such screen, there are %d\n", ScreenCount(display));
+      exit(1);
+    }
   }
 
   // check colors and load images before touching anything
@@ -559,6 +798,13 @@ main(int argc, char **argv)
     }
   }
 
+  if (size_w) {
+    Output area = { "root", 0, 0, size_w, size_h };
+    check_outputs(ops, nops, &area, 1, need_outputs);
+    compose(ops, nops, &area, 1, size_w, size_h, scale);
+    return 0;
+  }
+
   // Check every selected screen before drawing on any of them.
   if (!opt_root && (screen_mask & (screen_mask - 1))) {
     for (int s = 0; s < ScreenCount(display); s++) {
@@ -566,16 +812,7 @@ main(int argc, char **argv)
         continue;
       int count = 0;
       Output *available = query_outputs(display, s, &count);
-      if (!count && need_outputs) {
-        fprintf(stderr, "No outputs found (all turned off?), use -root to draw on the whole screen\n");
-        exit(1);
-      }
-      for (int i = 0; i < nops; i++) {
-        if (!strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all") && !find_output(available, count, ops[i].arg[0])) {
-          fprintf(stderr, "Unknown output (%s), see hsr-outputs\n", ops[i].arg[0]);
-          exit(1);
-        }
-      }
+      check_outputs(ops, nops, available, count, need_outputs);
       free(available);
     }
   }
@@ -598,186 +835,18 @@ main(int argc, char **argv)
     Output root = { "root", 0, 0, width, height };
     Output *outputs = opt_root ? &root : query_outputs(display, screen, &noutputs);
 
-    if (!noutputs && need_outputs) {
-      fprintf(stderr, "No outputs found (all turned off?), use -root to draw on the whole screen\n");
-      exit(1);
-    }
-
-    for (int i = 0; i < nops; i++) {
-      if (!strcmp(ops[i].opt->name, "output") && strcmp(ops[i].arg[0], "all") && !find_output(outputs, noutputs, ops[i].arg[0])) {
-        fprintf(stderr, "Unknown output (%s), see hsr-outputs\n", ops[i].arg[0]);
-        exit(1);
-      }
-    }
+    check_outputs(ops, nops, outputs, noutputs, need_outputs);
 
     pixmap = XCreatePixmap(display, RootWindow(display, screen), width, height, depth);
 
     imlib_context_set_visual(vis);
     imlib_context_set_colormap(cm);
     imlib_context_set_drawable(pixmap);
-    imlib_context_set_color_range(imlib_create_color_range());
-
-    image = imlib_create_image(width, height);
+    image = compose(ops, nops, outputs, noutputs, width, height, scale);
     imlib_context_set_image(image);
-
-    imlib_context_set_color(0, 0, 0, 255);
-    imlib_image_fill_rectangle(0, 0, width, height);
-
-    imlib_context_set_dither(1);
-    imlib_context_set_blend(1);
-
-    alpha = 255;
-    Output *target = NULL;
-    bool changed[noutputs + 1]; // +1, a VLA can't be empty
-    memset(changed, 0, sizeof(changed));
-    const char *fg = "black", *bg = "white";
-
-    for (int i = 0; i < nops; i++) {
-      Op *op = &ops[i];
-      const char *name = op->opt->name;
-      Output *area = target ? target : &root;
-      Color c;
-
-      if (modifier != NULL)
-        apply_color_modifier(target);
-      modifier = imlib_create_color_modifier();
-      imlib_context_set_color_modifier(modifier);
-
-      // these work on the whole image, give them just the target output's part
-      bool crop = target && (!strcmp(name, "blur") || !strcmp(name, "sharpen") || !strncmp(name, "flip", 4));
-      if (crop)
-        imlib_context_set_image(imlib_create_cropped_image(target->x, target->y, target->width, target->height));
-
-      if (in_list(DRAWS, name))
-        for (int j = 0; j < noutputs; j++)
-          changed[j] |= !target || target == &outputs[j];
-
-      if (!strcmp(name, "output")) {
-        target = find_output(outputs, noutputs, op->arg[0]);
-      } else if (!strcmp(name, "fg")) {
-        fg = op->arg[0];
-      } else if (!strcmp(name, "bg")) {
-        bg = op->arg[0];
-      } else if (!strcmp(name, "rv") || !strcmp(name, "reverse")) {
-        const char *swap = fg;
-        fg = bg;
-        bg = swap;
-      } else if (!strcmp(name, "bitmap") || !strcmp(name, "mod") || !strcmp(name, "gray") || !strcmp(name, "grey")) {
-        // the built-in patterns are xsetroot's
-        unsigned char gray[] = { 0x01, 0x02 }, mod[32], *bits = gray;
-        int w = 2, h = 2;
-        Color f, b;
-
-        if (op->bits) {
-          bits = op->bits;
-          w = op->bitsW;
-          h = op->bitsH;
-        } else if (!strcmp(name, "mod")) {
-          int mx = strtol(op->arg[0], NULL, 0), my = strtol(op->arg[1], NULL, 0), line = 0;
-          bits = mod;
-          w = h = 16;
-          for (int j = 16; j--; )
-            line = (line << 1) | (mx <= 0 || j % mx == 0);
-          for (int j = 0; j < 16; j++) {
-            mod[j * 2] = (my <= 0 || j % my == 0) ? 0xff : line & 0xff;
-            mod[j * 2 + 1] = (my <= 0 || j % my == 0) ? 0xff : line >> 8;
-          }
-        }
-
-        parse_color(fg, &f, alpha);
-        parse_color(bg, &b, alpha);
-        draw_bitmap(bits, w, h, f, b, image, area);
-      } else if (!strcmp(name, "alpha")) {
-        alpha = strtol(op->arg[0], NULL, 0);
-      } else if (!strcmp(name, "solid")) {
-        parse_color(op->arg[0], &c, alpha);
-        imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_image_fill_rectangle(area->x, area->y, area->width, area->height);
-      } else if (!strcmp(name, "clear")) {
-        imlib_free_color_range();
-        imlib_context_set_color_range(imlib_create_color_range());
-      } else if (!strcmp(name, "add") || !strcmp(name, "addd")) {
-        parse_color(op->arg[0], &c, alpha);
-        imlib_context_set_color(c.r, c.g, c.b, c.a);
-        imlib_add_color_to_color_range(scale * (op->arg[1] ? strtol(op->arg[1], NULL, 0) : 1));
-      } else if (!strcmp(name, "gradient")) {
-        for (int j = 0; j < (target ? 1 : noutputs); j++) {
-          Output *o = target ? target : &outputs[j];
-          imlib_image_fill_color_range_rectangle(o->x, o->y, o->width, o->height, strtod(op->arg[0], NULL));
-        }
-      } else if (op->image) {
-        ImageMode mode = !strcmp(name, "fill") ? Fill
-                       : !strcmp(name, "full") ? Full
-                       : !strcmp(name, "extend") ? Xtend
-                       : !strcmp(name, "tile") ? Tile
-                       : !strcmp(name, "center") ? Center
-                       : Cover;
-        draw_image(mode, op->image, alpha, image, target ? target : outputs, target ? 1 : noutputs);
-      } else if (!strcmp(name, "tint")) {
-        DATA8 r[256], g[256], b[256], a[256];
-
-        parse_color(op->arg[0], &c, 255);
-        imlib_get_color_modifier_tables(r, g, b, a);
-
-        for (int j = 0; j < 256; j++) {
-          r[j] = (DATA8) (((double) r[j] / 255.0) * (double) c.r);
-          g[j] = (DATA8) (((double) g[j] / 255.0) * (double) c.g);
-          b[j] = (DATA8) (((double) b[j] / 255.0) * (double) c.b);
-        }
-
-        imlib_set_color_modifier_tables(r, g, b, a);
-      } else if (!strcmp(name, "blur")) {
-        imlib_image_blur(strtol(op->arg[0], NULL, 0));
-      } else if (!strcmp(name, "sharpen")) {
-        imlib_image_sharpen(strtol(op->arg[0], NULL, 0));
-      } else if (!strcmp(name, "contrast")) {
-        imlib_modify_color_modifier_contrast(strtod(op->arg[0], NULL));
-      } else if (!strcmp(name, "brightness")) {
-        imlib_modify_color_modifier_brightness(strtod(op->arg[0], NULL));
-      } else if (!strcmp(name, "gamma")) {
-        imlib_modify_color_modifier_gamma(strtod(op->arg[0], NULL));
-      } else if (!strcmp(name, "flipv")) {
-        imlib_image_flip_vertical();
-      } else if (!strcmp(name, "fliph")) {
-        imlib_image_flip_horizontal();
-      } else if (!strcmp(name, "flipd")) {
-        imlib_image_flip_diagonal();
-      } else if (!strcmp(name, "write")) {
-        int err = 0;
-        imlib_save_image_with_errno_return(op->arg[0], &err);
-        if (err) {
-          fprintf(stderr, "Can't write (%s): %s\n", op->arg[0], imlib_strerror(err));
-          exit(1);
-        }
-      }
-
-      if (crop) {
-        Imlib_Image part = imlib_context_get_image();
-        int w = imlib_image_get_width(), h = imlib_image_get_height();
-
-        imlib_context_set_image(image);
-        imlib_context_set_blend(0);
-        imlib_blend_image_onto_image(part, 1, 0, 0, w, h, target->x, target->y, target->width, target->height);
-        imlib_context_set_blend(1);
-        imlib_context_set_image(part);
-        imlib_free_image();
-        imlib_context_set_image(image);
-      }
-    }
-
-    for (int i = 0; opt_verbose && i < noutputs; i++)
-      if (changed[i])
-        printf("output %s: size(%d, %d) pos(%d, %d)\n", outputs[i].name, outputs[i].width, outputs[i].height, outputs[i].x, outputs[i].y);
-
-    if (modifier != NULL) {
-      imlib_context_set_color_modifier(modifier);
-      apply_color_modifier(target);
-      modifier = NULL;
-    }
 
     imlib_render_image_on_drawable(0, 0);
     imlib_free_image();
-    imlib_free_color_range();
 
     if (setRootAtoms(pixmap) == 0)
       fprintf(stderr, "Couldn't create atoms...\n");

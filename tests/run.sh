@@ -399,6 +399,48 @@ t "-write"
 run -solid red -write "$T/w.png"
 [ -s "$T/w.png" ] && ok || ko "no file written"
 
+t "--size renders without a display"
+nox() {
+  DISPLAY= ./hsetroot "$@" >"$T/out" 2>&1
+  rc=$?
+}
+nox --size 64x32 --solid '#00ff00' --output all --solid red --write "$T/root.png"
+rc_is 0
+[ "$(identify -format %wx%h "$T/root.png")" = 64x32 ] && ok || ko "size $(identify -format %wx%h "$T/root.png")"
+is 63 31 255,0,0
+nox --size 64x32 --add red --add blue --gradient 90 --write "$T/root.png"
+is 0 0 0,0,255 6
+is 63 0 255,0,0 6
+nox --size 4x4 --fg red --bg blue --gray --write "$T/root.png"
+is 0 0 255,0,0
+is 1 0 0,0,255
+DISPLAY= ./hsetroot --solid red >/dev/null 2>&1
+rc=$?
+rc_is 123
+
+t "--size colors match XParseColor"
+for c in '#f00' '#fff000000' '#123456789abc' 'rgb:f/80/ffff' 'rgb:1/23/456' 'dark sea green' 'DarkSeaGreen' 'darkseagreen' 'NavajoWhite4'; do
+  run --solid "$c" --write "$T/x.png"
+  x=$(convert "$T/x.png" -format '%[pixel:p{0,0}]' info:)
+  nox --size 1x1 --solid "$c" --write "$T/x.png"
+  y=$(convert "$T/x.png" -format '%[pixel:p{0,0}]' info:)
+  [ "$x" = "$y" ] && ok || ko "$c: X $x, rgb.txt $y"
+done
+for c in 'dark  sea green' 'nosuchcolor' '#ff' 'rgb:1/2' 'rgb:12345/0/0' 'rgb:/1/2' '#12345g'; do
+  nox --size 1x1 --solid "$c"
+  rc_is 1
+done
+
+t "--size errors"
+for a in 0x10 10x0 10 x10 10x10x 10xa -5x10; do
+  nox --size "$a" --solid red
+  rc_is 1
+done
+nox --size 10x10 --output m0 --solid red
+rc_is 1
+nox --size 10x10 --screens 1 --solid red
+grep -q 'no effect' "$T/out" && ok || ko "no --screens warning"
+
 t "--verbose"
 screen 400x100
 run -fill "$T/rb.png"

@@ -7,6 +7,10 @@ LDFLAGS?=
 VERSION?=$(shell test -e .git && git describe --tags 2>/dev/null || echo 1.1.0)
 CPPFLAGS+=-DVERSION=\"$(VERSION)\"
 
+# color names without an X server
+RGB_TXT?=/usr/share/X11/rgb.txt
+CPPFLAGS+=-DRGB_TXT=\"$(RGB_TXT)\"
+
 PREFIX?=/usr/local
 DESTDIR?=
 
