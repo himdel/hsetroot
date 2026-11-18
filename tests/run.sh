@@ -4,6 +4,7 @@ cd "$(dirname "$0")/.." || exit 1
 T=$(mktemp -d)
 XPID=
 trap 'stop; rm -rf "$T"' EXIT
+trap 'exit 1' INT TERM HUP
 pass=0
 fail=0
 
@@ -432,11 +433,30 @@ done
 t "--help and --version work without a display"
 DISPLAY= ./hsetroot --help >/dev/null 2>&1 && DISPLAY= ./hsetroot -h >/dev/null 2>&1 && DISPLAY= ./hsetroot --version >/dev/null 2>&1 && ok || ko "failed"
 
+t "version ignores a parent git repo (tarball inside a packaging repo)"
+if command -v git >/dev/null; then
+  mkdir -p "$T/pkg/src"
+  git -C "$T/pkg" init -q && git -C "$T/pkg" -c user.name=t -c user.email=t@t commit -q --allow-empty -m pkg && git -C "$T/pkg" tag 9.9-1
+  cp Makefile "$T/pkg/src/"
+  v=$(make -s -C "$T/pkg/src" --eval 'v: ; @echo $(VERSION)' v)
+  [ "$v" = "$(sed -n 's/^VERSION.*|| echo \(.*\))$/\1/p' Makefile)" ] && ok || ko "got '$v'"
+fi
+
 t "man page lists every option"
 for o in $(./hsetroot --help | sed -n 's/^ --\([a-z]*\).*/\1/p'); do
   grep -q "fB\\\\-\\\\-$o\\\\fR" hsetroot.1 && ok || ko "--$o missing in hsetroot.1"
 done
 grep -Fq '\fB\-\-screen\fR' hsetroot.1 && ko "removed --screen still in hsetroot.1" || ok
+
+t "man page descriptions start with the --help text"
+# reworded or longer in the man page on purpose, or an alias sharing the entry
+reworded=" root screens output cover extend mod help version reverse grey "
+./hsetroot --help | sed -n 's/^ --\([a-z]*\) .*  \([A-Z].*\)/\1|\2/p' >"$T/help"
+while IFS='|' read -r o h; do
+  case "$reworded" in *" $o "*) continue;; esac
+  m=$(grep -A1 "^\\\\fB\\\\-\\\\-$o\\\\fR" hsetroot.1 | sed -n 2p | sed 's/\\-/-/g; s/\\f[BRI]//g')
+  case "$m" in "$h"*) ok;; *) ko "--$o: help '$h', man '$m'";; esac
+done <"$T/help"
 
 t "long options (#13)"
 screen 400x100
