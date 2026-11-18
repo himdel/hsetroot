@@ -28,6 +28,7 @@ static const Option options[] = {
   {"root", {NULL}, "Treat multiple displays as one big screen (ignore xrandr outputs)"},
   {"screens", {"<int>"}, "X screen bitmask (1 = screen 0, 2 = screen 1, 3 = screens 0 and 1, ...)"},
   {"output", {"<name>"}, "Draw only on this output from now on (see hsr-outputs), all for every output"},
+  {"size", {"<WxH>"}, "Draw on a WxH image instead of the screen, no display needed (for --write)"},
   {NULL, {NULL}, "Gradients:"},
   {"add", {"<color>"}, "Add color to range using distance 1"},
   {"addd", {"<color>", "<distance>"}, "Add color to range using custom distance"},
@@ -127,6 +128,7 @@ int screen;
 int opt_root = false;
 int opt_verbose = false;
 unsigned long screen_mask = 0;
+int size_w = 0, size_h = 0;
 
 int
 valid_arg(const char *kind, const char *arg)
@@ -147,6 +149,9 @@ valid_arg(const char *kind, const char *arg)
       return 0;
     if (!strcmp(kind, "<distance>") && (l < INT_MIN || l > INT_MAX))
       return 0;
+  } else if (!strcmp(kind, "<WxH>")) {
+    int w, h, n = 0;
+    return sscanf(arg, "%dx%d%n", &w, &h, &n) == 2 && !arg[n] && w > 0 && h > 0;
   } else if (!strcmp(kind, "<amount>") || !strcmp(kind, "<angle>")) {
     if (!isfinite(strtod(arg, &end)))
       return 0;
@@ -228,6 +233,8 @@ parse_args(int argc, char **argv, Op *ops)
       opt_verbose = true;
     } else if (!strcmp(name, "root")) {
       opt_root = true;
+    } else if (!strcmp(name, "size")) {
+      sscanf(op.arg[0], "%dx%d", &size_w, &size_h);
     } else if (!strcmp(name, "screens")) {
       screen_mask = strtoul(op.arg[0], NULL, 0);
       if (!screen_mask) {
@@ -729,18 +736,19 @@ main(int argc, char **argv)
   Op *ops = calloc(argc, sizeof(Op));
   int nops = parse_args(argc, argv, ops);
 
-  /* global */ display = XOpenDisplay(NULL);
-
-  if (!display) {
+  if (size_w) {
+    if (screen_mask)
+      fprintf(stderr, "Warning: --screens has no effect with --size\n");
+  } else if (!(/* global */ display = XOpenDisplay(NULL))) {
     fprintf(stderr, "Cannot open X display!\n");
     exit(123);
-  }
-
-  if (!screen_mask)
-    screen_mask = 1UL << DefaultScreen(display);
-  if (!(screen_mask & ((1UL << ScreenCount(display)) - 1))) {
-    fprintf(stderr, "No such screen, there are %d\n", ScreenCount(display));
-    exit(1);
+  } else {
+    if (!screen_mask)
+      screen_mask = 1UL << DefaultScreen(display);
+    if (!(screen_mask & ((1UL << ScreenCount(display)) - 1))) {
+      fprintf(stderr, "No such screen, there are %d\n", ScreenCount(display));
+      exit(1);
+    }
   }
 
   // check colors and load images before touching anything
@@ -788,6 +796,13 @@ main(int argc, char **argv)
       fprintf(stderr, "Can't use --output %s with -root\n", ops[i].arg[0]);
       exit(1);
     }
+  }
+
+  if (size_w) {
+    Output area = { "root", 0, 0, size_w, size_h };
+    check_outputs(ops, nops, &area, 1, need_outputs);
+    compose(ops, nops, &area, 1, size_w, size_h, scale);
+    return 0;
   }
 
   // Check every selected screen before drawing on any of them.

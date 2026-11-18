@@ -25,10 +25,10 @@ See `hsetroot --help` or `man hsetroot` for all of them:
  * **colors** - `--solid`, gradients via `--add`/`--addd` + `--gradient`, `--alpha`
  * **bitmaps** like xsetroot - `--bitmap file.xbm`, `--mod x y`, `--gray` with `--fg`, `--bg`, `--rv` (same pixels as xsetroot, but the colors go before the bitmap)
  * **manipulations** - `--tint`, `--blur`, `--sharpen`, `--contrast`, `--brightness`, `--gamma`, `--flipv`, `--fliph`, `--flipd`
- * `--write file.png` saves the result too
+ * `--write file.png` saves the result too; with `--size WxH` hsetroot only renders the file, without a display or touching the screen: `hsetroot --size 1920x1080 --add navy --add black --gradient 0 --write wall.png`
  * `--verbose` prints which monitors were drawn on, `--help`, `--version`
 
-Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb:r/g/b` or an X color name.
+Colors are `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb:r/g/b` or an X color name. Without an X server (`--size`), names come from `/usr/share/X11/rgb.txt` (`make RGB_TXT=..` for another place), and X's rare Xcms forms (`rgbi:`, `CIEXYZ:`, `TekHVC:`, ...) aren't supported.
 
 `--mod 3 5` draws foreground vertical lines 3 pixels apart and horizontal lines 5 pixels apart; the gaps use the background color. The pattern repeats every 16 pixels: 0 fills that direction, and values above 16 give one line per tile.
 

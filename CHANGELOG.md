@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Features
+
+- `--size WxH` renders without a display and without touching the screen, for `--write`: `hsetroot --size 1920x1080 --solid navy --write wall.png`
+
+### Changes
+
+- packagers: color names without an X server (`--size`) are read from `/usr/share/X11/rgb.txt` at runtime (Debian x11-common, Arch xorg-rgb), `make RGB_TXT=..` for another path
+
 ## 1.1.0 - 2026-11-18
 
 ### Features

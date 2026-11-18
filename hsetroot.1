@@ -46,6 +46,12 @@ Names are the ones from \fBxrandr \-\-listmonitors\fR or \fBhsr\-outputs\fR.
 Can't be used with \fB\-\-root\fR, except for \fBall\fR.
 Settings such as \fB\-\-alpha\fR and colors added with \fB\-\-add\fR carry
 over to the next output; use \fB\-\-clear\fR for a new gradient.
+.TP
+\fB\-\-size\fR \fIWxH\fR
+Draw on a WxH image instead of the screen, no display needed (for --write).
+Nothing is shown, the screen is left alone, and color names come from
+\fI/usr/share/X11/rgb.txt\fR.
+Behaves like \fB\-\-root\fR with a screen of that size.
 .SS "Gradients"
 .TP
 \fB\-\-add\fR \fIcolor\fR
